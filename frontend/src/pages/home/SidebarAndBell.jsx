@@ -6,7 +6,7 @@ import sideBar from '../../assets/images/sideBar.png'
 const SidebarAndBell = ({style}) => {
   return (
     <>
-    <div className = {`flex justify-center ${style}`} >
+    <div className = {`flex justify-center ${style}`} style={{ width: 'max-content'}} >
 
         <span> 
         <img src={bellicon} alt="bell" className='h-7 w-7  ml-1 mr-1 cursor-pointer' />

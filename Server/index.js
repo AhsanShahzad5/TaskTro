@@ -1,6 +1,6 @@
 //import the module for connection
-// const connectToMongo = require('./Db');
-// connectToMongo()
+const connectToMongo = require('./Db');
+connectToMongo()
 
 
 //express 
@@ -15,10 +15,10 @@ app.use(cors());
 
 /* 
 //available routes. app.use is for middlewar work
+
+*/
 app.use('/api/auth' , require('./routes/auth'));
 app.use('/api/notes' , require('./routes/notes'));
-
- */
 
 //general
 app.get('/', (req, res) => {

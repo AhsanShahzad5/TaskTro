@@ -12,10 +12,7 @@ const AccountSidebar = ({className}) => {
 
   return (
     <div className={`w-64 h-screen p-4  ${className}`}>
-      <button className="flex items-center text-red-500 mb-6">
-        <span> <AddTaskIcon/> </span>
-        <span>Add task</span>
-      </button>
+      
       <div className="space-y-2">
         {menuItems.map(item => (
           <div
@@ -66,12 +63,5 @@ const FiltersLabelsIcon = ({ className }) => (
   </svg>
 );
 
-const AddTaskIcon = ()=>{
-    return(
-
-        <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-        
-        )
-    }
     
 export default AccountSidebar;

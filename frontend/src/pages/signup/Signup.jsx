@@ -1,6 +1,6 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import SecondSvg from './SecondSvg';
 import ThirdSvg from './ThirdSvg';
 import { FourthSvg } from './FourthSvg';
@@ -8,14 +8,37 @@ import FirstSvg from './FirstSvg';
 
 const SignUp = () => {
   const { register, handleSubmit, getValues, formState: { errors } } = useForm();
+  const navigate = useNavigate(); // useNavigate hook to navigate programmatically
 
   const commonTextSize = {
     fontSize: '1.6rem'
   };
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     console.log(data);
-    // Handle the form submission
+    // Perform sign-up action here
+    const response = await fetch("http://localhost:5000/api/auth/createuser", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: data.name,
+        email: data.email,
+        password: data.password
+      })
+    });
+
+    const json = await response.json();
+    console.log(json);
+
+    if (response.status === 200) {
+      // Save the auth token and redirect
+      localStorage.setItem('token', json);
+      navigate('/home');
+    } else {
+      alert("User with this email already exists or invalid details");
+    }
   };
 
   return (

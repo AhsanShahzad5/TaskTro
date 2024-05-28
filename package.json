@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "concurrently": "^8.2.2",
+    "mongoose": "^8.4.0",
     "react-router-dom": "^6.23.1"
   }
 }
