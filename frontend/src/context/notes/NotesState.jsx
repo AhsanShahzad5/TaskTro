@@ -57,30 +57,27 @@ const NoteState = (props) => {
   // Edit a Note
   const editNote = async (id, title, description, tag, dueDate) => {
     const token = getAuthToken();
-    const response = await fetch(`${host}/api/notes/updatenote/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'auth-token': token
-      },
-      body: JSON.stringify({ title, description, tag, dueDate })
-    });
-    await response.json();
+    try {
+        const response = await fetch(`${host}/api/notes/updatenote/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'auth-token': token
+            },
+            body: JSON.stringify({ title, description, tag, dueDate })
+        });
 
-    let newNotes = JSON.parse(JSON.stringify(notes));
-    for (let index = 0; index < newNotes.length; index++) {
-      const element = newNotes[index];
-      if (element._id === id) {
-        newNotes[index].title = title;
-        newNotes[index].description = description;
-        newNotes[index].tag = tag;
-        newNotes[index].dueDate = dueDate;
-        break;
-      }
+        const data = await response.json();
+        if (response.ok) {
+            let newNotes = notes.map(note => note._id === id ? data : note);
+            setNotes(newNotes);
+        } else {
+            console.error('Failed to update note:', data);
+        }
+    } catch (error) {
+        console.error('Error updating note:', error);
     }
-    setNotes(newNotes);
-  };
-
+};
   return (
     <NoteContext.Provider value={{ notes, addNote, deleteNote, editNote, getNotes }}>
       {props.children}

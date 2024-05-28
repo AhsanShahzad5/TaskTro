@@ -3,6 +3,9 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import noteContext from "../../context/notes/NotesContext";
 import TaskItem from '../../components/TaskItem';
 import AddTask from '../../components/AddTask';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+
 import TaskModal from '../../components/TaskModal';
 
 const Tasks = () => {
@@ -16,15 +19,17 @@ const Tasks = () => {
     }, []);
 
     const updateNote = (note) => {
-        setCurrentNote(note);
+        setCurrentNote({ id: note._id, title: note.title, description: note.description, tag: note.tag, dueDate: new Date(note.dueDate) });
         setShowEditModal(true);
     };
 
     const handleEditSubmit = (e) => {
         e.preventDefault();
+        // console.log("Submitting edit for note:", currentNote); // Debugging statement
         editNote(currentNote.id, currentNote.title, currentNote.description, currentNote.tag, currentNote.dueDate);
         setShowEditModal(false);
     };
+    
 
     const handleEditChange = (e) => {
         setCurrentNote({ ...currentNote, [e.target.name]: e.target.value });

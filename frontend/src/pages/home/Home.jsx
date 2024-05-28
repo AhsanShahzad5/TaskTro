@@ -5,12 +5,12 @@ import PageRightSide from './PageRightSide'
 const Home = () => {
   return (
     <>
-      <div>Home</div>
-      <div className="flex">
+      
+      <div className="flex m-5 p-5">
         <PageLeftSide/>
         <PageRightSide/>
       </div>
-      <p>bye</p>
+      
     </>
   )
 }

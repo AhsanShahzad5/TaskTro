@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 
+import { CiInboxIn } from "react-icons/ci";
+import { CgCalendarToday } from "react-icons/cg"
+import { FaCalendarAlt } from "react-icons/fa";
+import { TbFilterSearch } from "react-icons/tb";
 const AccountSidebar = ({className}) => {
   const [selected, setSelected] = useState('');
 
@@ -40,27 +44,29 @@ const AccountSidebar = ({className}) => {
 };
 
 const InboxIcon = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V5a2 2 0 00-2-2H6a2 2 0 00-2 2v8M4 13a4 4 0 004 4h8a4 4 0 004-4M4 13h16"></path>
-  </svg>
+  <div className="mr-2">
+    <CiInboxIn />
+  </div>
 );
 
 const TodayIcon = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3M4 11h16M4 19h16a2 2 0 002-2v-5a2 2 0 00-2-2H4a2 2 0 00-2 2v5a2 2 0 002 2z"></path>
-  </svg>
+  <div className="mr-2">
+    <CgCalendarToday/>
+  </div>
 );
 
 const UpcomingIcon = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3M12 6v6l3 3M5 8h.01M5 12h.01M5 16h.01M12 8h.01M12 12h.01M12 16h.01M19 8h.01M19 12h.01M19 16h.01M6 6H4a2 2 0 00-2 2v8a2 2 0 002 2h2m12-12h2a2 2 0 012 2v8a2 2 0 01-2 2h-2"></path>
-  </svg>
+  <div className="mr-2">
+    <FaCalendarAlt/>
+  </div>
 );
 
-const FiltersLabelsIcon = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 12H6M10 12a2 2 0 11-4 0M10 12a2 2 0 104 0m0 0h4M10 6H6M10 6a2 2 0 11-4 0M10 6a2 2 0 104 0m0 0h4M10 18H6M10 18a2 2 0 11-4 0M10 18a2 2 0 104 0m0 0h4"></path>
-  </svg>
+const FiltersLabelsIcon = () => (
+  <div className="mr-2">
+    
+  <TbFilterSearch />
+  </div>
+
 );
 
     

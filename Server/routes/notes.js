@@ -45,7 +45,17 @@ router.post('/addnote', fetchuser, [
 //id so only that purticular user can update that note
 router.put('/updatenote/:id', fetchuser, async (req, res) => {
     const { title, description, tag, dueDate } = req.body;
+
     try {
+        // Log request body and parameters for debugging
+        // console.log('Request Params:', req.params);
+        // console.log('Request Body:', req.body);
+
+        // Validate dueDate if it is provided
+        if (dueDate && isNaN(Date.parse(dueDate))) {
+            return res.status(400).send("Invalid dueDate format");
+        }
+
         // Create a newNote object
         const newNote = {};
         if (title) { newNote.title = title; }
@@ -55,20 +65,25 @@ router.put('/updatenote/:id', fetchuser, async (req, res) => {
 
         // Find the note to be updated and update it
         let note = await Note.findById(req.params.id);
-        if (!note) { return res.status(404).send("Not Found"); }
+        if (!note) {
+            return res.status(404).send("Not Found");
+        }
 
+        // Allow update only if user owns this Note
         if (note.user.toString() !== req.user.id) {
             return res.status(401).send("Not Allowed");
         }
 
+        // Update the note
         note = await Note.findByIdAndUpdate(req.params.id, { $set: newNote }, { new: true });
         res.json(note);
     } catch (error) {
-        console.error(error.message);
+        console.error('Error:', error.message);
         res.status(500).send("Internal Server Error");
     }
 });
 
+module.exports = router;
 // ROUTE 4: Delete an existing Note using: DELETE "/api/notes/deletenote". Login required
 router.delete('/deletenote/:id', fetchuser, async (req, res) => {
     try {
