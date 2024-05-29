@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from 'react-router-dom';
+import { Link , useNavigate} from 'react-router-dom';
 import userImg from '../../assets/images/user.jpg';
 
 export default function AccountDropdown({ className }) {
@@ -7,7 +7,7 @@ export default function AccountDropdown({ className }) {
 
   const trigger = useRef(null);
   const dropdown = useRef(null);
-
+  const navigate = useNavigate()
   // Prevent scrolling when the dropdown is open
   useEffect(() => {
     if (dropdownOpen) {
@@ -46,6 +46,9 @@ export default function AccountDropdown({ className }) {
     return () => document.removeEventListener("keydown", keyHandler);
   }, [dropdownOpen]);
 
+  const handleLogout = ()=>{
+    navigate('/');
+  }
   return (
     <div className="flex">
       <div className="relative inline-block">
@@ -122,7 +125,7 @@ export default function AccountDropdown({ className }) {
             </Link>
           </div>
           <div>
-            <button className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-dark hover:bg-red-100">
+            <button className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-dark hover:bg-red-100" onClick={handleLogout}>
               Log out
             </button>
           </div>
