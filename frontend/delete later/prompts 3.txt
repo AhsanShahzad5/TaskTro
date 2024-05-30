@@ -1,0 +1,581 @@
+ACT AS A EXPERT MERN STACK DEVELOPER :
+here are my project related fields
+first read them and whatever i ask , implement into my code
+"project state.jsx"
+import React, { createContext, useReducer, useEffect } from 'react';
+import { getAuthToken } from "../utility/JWTtokenExport";
+
+// Define initial state
+const initialState = {
+  projects: [],
+  selectedProject: null,
+  isModalOpen: false,
+  users: []
+};
+
+// Create context
+const ProjectsContext = createContext(initialState);
+
+// Reducer
+const projectsReducer = (state, action) => {
+  switch (action.type) {
+    case 'SET_PROJECTS':
+      return {
+        ...state,
+        projects: action.payload
+      };
+    case 'SET_SELECTED_PROJECT':
+      return {
+        ...state,
+        selectedProject: action.payload
+      };
+    case 'TOGGLE_MODAL':
+      return {
+        ...state,
+        isModalOpen: !state.isModalOpen
+      };
+    case 'SET_USERS':
+      return {
+        ...state,
+        users: action.payload
+      };
+    case 'ADD_PROJECT':
+      return {
+        ...state,
+        projects: [...state.projects, action.payload]
+      };
+    case 'UPDATE_PROJECT':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project._id === action.payload._id ? action.payload : project
+        )
+      };
+    case 'DELETE_PROJECT':
+      return {
+        ...state,
+        projects: state.projects.filter(project => project._id !== action.payload)
+      };
+    default:
+      return state;
+  }
+};
+
+// Provider component
+const ProjectsProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(projectsReducer, initialState);
+  const token = getAuthToken();
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/projects', {
+          headers: {
+            'Content-Type': 'application/json',
+            'auth-token': token
+          }
+        });
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        dispatch({ type: 'SET_PROJECTS', payload: data });
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+      }
+    };
+
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/getAllUsers', {
+          headers: {
+            'Content-Type': 'application/json',
+            'auth-token': token
+          }
+        });
+        const data = await response.json();
+        dispatch({ type: 'SET_USERS', payload: data });
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      }
+    };
+
+    fetchProjects();
+    fetchUsers();
+  }, [token]);
+
+  const toggleModal = () => {
+    dispatch({ type: 'TOGGLE_MODAL' });
+  };
+
+  const setSelectedProject = (project) => {
+    dispatch({ type: 'SET_SELECTED_PROJECT', payload: project });
+  };
+
+  const addProject = (project) => {
+    dispatch({ type: 'ADD_PROJECT', payload: project });
+  };
+
+  const updateProject = (project) => {
+    dispatch({ type: 'UPDATE_PROJECT', payload: project });
+  };
+
+  const deleteProject = async (projectId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'auth-token': token
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete project');
+      }
+      dispatch({ type: 'DELETE_PROJECT', payload: projectId });
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+    }
+  };
+
+  return (
+    <ProjectsContext.Provider
+      value={{
+        projects: state.projects,
+        selectedProject: state.selectedProject,
+        isModalOpen: state.isModalOpen,
+        users: state.users,
+        toggleModal,
+        setSelectedProject,
+        addProject,
+        updateProject,
+        deleteProject
+      }}
+    >
+      {children}
+    </ProjectsContext.Provider>
+  );
+};
+
+export { ProjectsProvider, ProjectsContext };
+
+
+//projectCreation.jsx
+import React, { useContext } from 'react';
+import ProjectModal from '../../components/ProjectModal';
+import ProjectList from '../../pages/home/ProjectList';
+import { MdArrowDropDown } from "react-icons/md";
+import { ProjectsContext } from '../../context/ProjectState';
+
+const ProjectsCreation = () => {
+  const {
+    projects,
+    isModalOpen,
+    selectedProject,
+    toggleModal,
+    setSelectedProject,
+    addProject,
+    updateProject,
+    deleteProject
+  } = useContext(ProjectsContext);
+
+  const openModal = (project = null) => {
+    setSelectedProject(project);
+    toggleModal();
+  };
+
+  const closeModal = () => {
+    setSelectedProject(null);
+    toggleModal();
+  };
+
+  const saveProject = (savedProject) => {
+    if (selectedProject) {
+      updateProject(savedProject);
+    } else {
+      addProject(savedProject);
+    }
+  };
+
+  return (
+    <>
+      <div className="mt-6 flex">
+        <p className="text-red-500 font-bold cursor-pointer flex-grow">My Projects</p>
+        <div className='cursor-pointer flex-shrink mt-1'>
+          <MdArrowDropDown />
+        </div>
+      </div>
+      <div>
+        <button onClick={() => openModal()} className="cursor-pointer mt-5 bg-red-500 text-white p-2 rounded">Create New Project</button>
+        <ProjectModal isOpen={isModalOpen} onClose={closeModal} onSave={saveProject} project={selectedProject} />
+        <ProjectList projects={projects} onEdit={openModal} onDelete={deleteProject} />
+      </div>
+    </>
+  );
+};
+
+export default ProjectsCreation;
+
+
+//project modal.jsx
+import React, { useState, useEffect, useContext } from 'react';
+import { ProjectsContext } from '../context/ProjectState';
+import { getAuthToken } from '../utility/JWTtokenExport';
+
+const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
+  const { users } = useContext(ProjectsContext);
+  const [projectData, setProjectData] = useState({
+    name: '',
+    description: '',
+    deadline: '',
+    members: [],
+  });
+  const [selectedUser, setSelectedUser] = useState('');
+  const [role, setRole] = useState('Team Member');
+  const token = getAuthToken();
+  useEffect(() => {
+    if (project) {
+      setProjectData(project);
+    }
+  }, [project]);
+
+  const onChange = (e) => {
+    setProjectData({ ...projectData, [e.target.name]: e.target.value });
+  };
+
+  const onAddMember = () => {
+    const member = { user: selectedUser, role };
+    setProjectData({ ...projectData, members: [...projectData.members, member] });
+    setSelectedUser('');
+    setRole('Team Member');
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const method = project ? 'PUT' : 'POST';
+      const url = project ? `http://localhost:5000/api/projects/${project._id}` : 'http://localhost:5000/api/projects';
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'auth-token': token
+        },
+        body: JSON.stringify(projectData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to save project');
+      }
+      const data = await response.json();
+      onSave(data);
+      onClose();
+    } catch (error) {
+      console.error('Failed to save project:', error);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+      <div className="bg-white w-full max-w-lg p-6 rounded-lg shadow-lg">
+        <h2 className="text-2xl mb-4 text-red-500">{project ? 'Edit Project' : 'Create New Project'}</h2>
+        <form onSubmit={onSubmit}>
+          <div className="mb-4">
+            <label className="block text-red-500">Project Name</label>
+            <input type="text" name="name" value={projectData.name} onChange={onChange} className="w-full p-2 border border-red-500 rounded" />
+          </div>
+          <div className="mb-4">
+            <label className="block text-red-500">Description</label>
+            <input type="text" name="description" value={projectData.description} onChange={onChange} className="w-full p-2 border border-red-500 rounded" />
+          </div>
+          <div className="mb-4">
+            <label className="block text-red-500">Deadline</label>
+            <input type="date" name="deadline" value={projectData.deadline} onChange={onChange} className="w-full p-2 border border-red-500 rounded" />
+          </div>
+          <div className="mb-4">
+            <label className="block text-red-500">Add Members</label>
+            <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} className="w-full p-2 border border-red-500 rounded">
+              <option value="">Select User</option>
+              {users.map(user => (
+                <option key={user._id} value={user._id}>{user.email}</option>
+              ))}
+            </select>
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full p-2 border border-red-500 rounded mt-2">
+              <option value="Team Member">Team Member</option>
+              <option value="Project Manager">Project Manager</option>
+            </select>
+            <button type="button" onClick={onAddMember} className="mt-2 bg-red-500 text-white p-2 rounded">Add Member</button>
+          </div>
+          <div className="flex justify-end">
+            <button type="button" onClick={onClose} className="bg-gray-300 text-black p-2 rounded mr-2">Cancel</button>
+            <button type="submit" className="bg-red-500 text-white p-2 rounded">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default ProjectModal;
+
+"project controller.jsx"
+const Project = require('../models/Project');
+const User = require('../models/User');
+const Note = require('../models/Note');
+
+// Get all projects for a user
+const getProjects = async (req, res) => {
+  try {
+    const projects = await Project.find({ 'members.user': req.user.id })
+      .populate('members.user', 'name')
+      .populate('tasks');
+    res.json(projects);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Create a new project
+const createProject = async (req, res) => {
+  const { name, description, deadline, members } = req.body;
+  try {
+    const newProject = new Project({
+      name,
+      description,
+      deadline,
+      members,
+    });
+
+    const project = await newProject.save();
+
+    // Add project to each member's profile
+    const memberPromises = project.members.map(async (member) => {
+      await User.findByIdAndUpdate(member.user, { $addToSet: { projects: project._id } });
+    });
+    await Promise.all(memberPromises);
+
+    res.json(project);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Add a member to a project
+const addMember = async (req, res) => {
+  const { projectId } = req.params;
+  const { userId, role } = req.body;
+  try {
+    const project = await Project.findById(projectId);
+    const user = await User.findById(userId);
+
+    if (!project || !user) {
+      return res.status(404).json({ msg: 'Project or User not found' });
+    }
+
+    project.members.push({ user: userId, role });
+    await project.save();
+
+    await User.findByIdAndUpdate(userId, { $addToSet: { projects: projectId } });
+
+    res.json(project);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Assign a task to a project
+const assignTask = async (req, res) => {
+  const { projectId } = req.params;
+  const { taskId } = req.body;
+  try {
+    const project = await Project.findById(projectId);
+    const task = await Note.findById(taskId);
+
+    if (!project || !task) {
+      return res.status(404).json({ msg: 'Project or Task not found' });
+    }
+
+    project.tasks.push(taskId);
+    await project.save();
+
+    res.json(project);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Update an existing project
+const updateExistingProject = async (req, res) => {
+  const { name, description, deadline, members } = req.body;
+  try {
+    let project = await Project.findById(req.params.id);
+    console.log('Project before update:', project); // Logging the project before update
+
+    if (!project) return res.status(404).json({ msg: 'Project not found' });
+
+    // Update the project fields
+    const updatedProject = {
+      name: name || project.name,
+      description: description || project.description,
+      deadline: deadline || project.deadline,
+      members: members || project.members,
+    };
+
+    // Update the project in the database
+    project = await Project.findByIdAndUpdate(req.params.id, { $set: updatedProject }, { new: true });
+
+    
+    // Log the updated project
+    console.log('Project after update:', project);
+
+    // Update members' profiles
+    const oldMembers = project.members.map(member => member.user.toString());
+    const newMembers = (members || project.members).map(member => member.user.toString());
+
+    // Remove project from old members who are no longer part of the project
+    const membersToRemove = oldMembers.filter(member => !newMembers.includes(member));
+    const removePromises = membersToRemove.map(async (memberId) => {
+      console.log('Removing project from member:', memberId);
+      await User.findByIdAndUpdate(memberId, { $pull: { projects: project._id } });
+    });
+
+    // Add project to new members
+    const membersToAdd = newMembers.filter(member => !oldMembers.includes(member));
+    const addPromises = membersToAdd.map(async (memberId) => {
+      console.log('Adding project to member:', memberId);
+      await User.findByIdAndUpdate(memberId, { $addToSet: { projects: project._id } });
+    });
+
+    await Promise.all([...removePromises, ...addPromises]);
+
+    res.json(project);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+
+// Delete a project
+const deleteProject = async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+
+    if (!project) return res.status(404).json({ msg: 'Project not found' });
+
+    // Remove project from all members' profiles
+    const memberPromises = project.members.map(async (member) => {
+      await User.findByIdAndUpdate(member.user, { $pull: { projects: project._id } });
+    });
+    await Promise.all(memberPromises);
+
+    await Project.findByIdAndDelete(req.params.id);
+
+    res.json({ msg: 'Project removed' });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+module.exports = {
+  getProjects,
+  createProject,
+  addMember,
+  assignTask,
+  updateExistingProject,
+  deleteProject,
+};
+
+
+"projectlist.jsx"
+import React, { useState, useEffect } from 'react';
+
+const ProjectList = ({ projects, onEdit, onDelete }) => {
+  const [expandedProjectId, setExpandedProjectId] = useState(null);
+
+  const toggleExpand = (projectId) => {
+    if (expandedProjectId === projectId) {
+      setExpandedProjectId(null);
+    } else {
+      setExpandedProjectId(projectId);
+    }
+  };
+
+  useEffect(() => {
+    console.log('Projects:', projects);
+  }, [projects]);
+
+  return (
+    <div className="mt-4">
+      {projects.length === 0 ? (
+        <p>No projects available</p>
+      ) : (
+        projects.map((project) => (
+          <div key={project._id} className="p-4 border mb-4 rounded">
+            <div className="flex justify-between items-center">
+              <h3
+                className="text-xl font-bold cursor-pointer"
+                onClick={() => toggleExpand(project._id)}
+              >
+                {project.name || 'Unnamed Project'}
+              </h3>
+              <div className="flex space-x-2">
+                <button onClick={() => onEdit(project)} className="bg-yellow-500 text-white p-1 rounded">
+                  Edit
+                </button>
+                <button onClick={() => onDelete(project._id)} className="bg-red-500 text-white p-1 rounded">
+                  Delete
+                </button>
+              </div>
+            </div>
+            {expandedProjectId === project._id && (
+              <div>
+                <p>{project.description || 'No description available'}</p>
+                <p>Deadline: {project.deadline ? new Date(project.deadline).toLocaleDateString() : 'No deadline'}</p>
+                <div>
+                  <h4>Members:</h4>
+                  <ul>
+                    {project.members && project.members.length > 0 ? (
+                      project.members.map((member, index) => (
+                        <li key={`${member.user._id}-${index}`}>
+                          {member.user?.name || 'Unknown User'} ({member.role || 'No role specified'})
+                        </li>
+                      ))
+                    ) : (
+                      <li>No members</li>
+                    )}
+                  </ul>
+                </div>
+                <div>
+                  <h4>Tasks:</h4>
+                  <ul>
+                    {project.tasks && project.tasks.length > 0 ? (
+                      project.tasks.map((task, index) => (
+                        <li key={`${task._id}-${index}`}>{task.title || 'Untitled Task'}</li>
+                      ))
+                    ) : (
+                      <li>No tasks</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
+
+export default ProjectList;
+
+add following features to it
+1. my project modals should also have task CRUD functionality implemented into them , basically i already have the task crud built , but i also want it in my projects as well and another option is that i shud be able to select whom i want to asign that particular task , it should be an optional feature the assining part.
+i have the following task / notes crud related components if u need them let me know:
+"NotesState.jsx" , "NoteItem" , " 
