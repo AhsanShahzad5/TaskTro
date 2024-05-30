@@ -7,6 +7,7 @@ import Signup from './pages/signup/Signup.jsx'
 import Login from './pages/Login.jsx'
 import Home from './pages/home/Home.jsx'
 import NotesState from './context/notes/NotesState.jsx'
+import { ProjectsProvider } from './context/ProjectState.jsx';
 
 const router = createBrowserRouter([
   {
@@ -31,8 +32,11 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <NotesState>
-      <RouterProvider router={router} />
-    </NotesState>
+    <ProjectsProvider>
+
+      <NotesState>
+        <RouterProvider router={router} />
+      </NotesState>
+    </ProjectsProvider>
   </React.StrictMode>,
 )
