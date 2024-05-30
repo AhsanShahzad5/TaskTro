@@ -4,7 +4,7 @@ import { CiInboxIn } from "react-icons/ci";
 import { CgCalendarToday } from "react-icons/cg"
 import { FaCalendarAlt } from "react-icons/fa";
 import { TbFilterSearch } from "react-icons/tb";
-import { MdArrowDropDown } from "react-icons/md";
+import ProjectsCreation from './ProjectsCreation';
 const AccountSidebar = ({className}) => {
   const [selected, setSelected] = useState('');
 
@@ -37,12 +37,7 @@ const AccountSidebar = ({className}) => {
           </div>
         ))}
       </div>
-      <div className="mt-6 flex">
-        <p1 className="text-red-500 font-bold cursor-pointer flex-grow">My Projects</p1>
-         <div className='cursor-pointer flex-shrink mt-1'>
-         <MdArrowDropDown />
-         </div>
-      </div>
+      <ProjectsCreation/>
     </div>
   );
 };

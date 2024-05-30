@@ -18,6 +18,22 @@ const fetchuser = require('../middleware/fetchuser');
 
 
 //-------------------------------------------------------------
+
+// rote to fetch all users :
+// Route to fetch all users
+// GET: /api/users
+router.get('/getAllUsers', async (req, res) => {
+    try {
+      const users = await User.find();
+      res.json(users);
+    } catch (error) {
+      console.error(error.message);
+      res.status(500).send('Server Error');
+    }
+  });
+
+
+
 // end point for USER using post method for "/api/auth". auth not req at this point (no login)
 //ROUTE 2
 //POST: /api/auth/createuser

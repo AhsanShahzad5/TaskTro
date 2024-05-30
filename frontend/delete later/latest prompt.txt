@@ -1,0 +1,266 @@
+ok so here are all my project related files updated with no errors  : 
+"Project Creation"
+import React, { useState, useEffect } from 'react';
+import ProjectModal from '../../components/ProjectModal';
+import ProjectList from '../../pages/home/ProjectList';
+import { MdArrowDropDown } from "react-icons/md";
+import { getAuthToken } from "../../utility/JWTtokenExport"; // Import the utility function
+
+const ProjectsCreation = () => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [projects, setProjects] = useState([]);
+    const token = getAuthToken();
+
+    useEffect(() => {
+        const fetchProjects = async () => {
+          try {
+            const response = await fetch('http://localhost:5000/api/projects', {
+              headers: {
+                'Content-Type': 'application/json',
+                'auth-token': token
+              }
+            });
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            const data = await response.json();
+            setProjects(data);
+          } catch (error) {
+            console.error('Failed to fetch projects:', error);
+          }
+        };
+        fetchProjects();
+      }, []);
+    const openModal = () => {
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+    };
+
+    const saveProject = (newProject) => {
+        setProjects([...projects, newProject]);
+    };
+    return (
+        <>
+            <div className="mt-6 flex">
+                <p className="text-red-500 font-bold cursor-pointer flex-grow">My Projects</p>
+                <div className='cursor-pointer flex-shrink mt-1'>
+                    <MdArrowDropDown />
+                </div>
+            </div>
+            <div>
+                <button onClick={openModal} className="cursor-pointer mt-5 bg-red-500 text-white p-2 rounded">Create New Project</button>
+                <ProjectModal isOpen={isModalOpen} onClose={closeModal} onSave={saveProject} />
+                <ProjectList projects={projects} />
+            </div>
+        </>
+    )
+}
+
+export default ProjectsCreation
+
+"project modal.jsx"
+import React, { useState, useEffect, useContext } from 'react';
+import noteContext from '../context/notes/NotesContext';
+import { getAuthToken } from "../utility/JWTtokenExport"; // 
+
+const ProjectModal = ({ isOpen, onClose, onSave }) => {
+  const context = useContext(noteContext);
+  const { getUsers } = context;
+  const [projectData, setProjectData] = useState({
+    name: '',
+    description: '',
+    deadline: '',
+    members: [],
+  });
+  const token = getAuthToken();
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState('');
+  const [role, setRole] = useState('Team Member');
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        console.log(token)
+        const response = await fetch('http://localhost:5000/api/auth/getAllUsers', {
+          method : 'GET' ,
+          headers: {
+            'Content-Type': 'application/json',
+            'auth-token': token
+          }
+        });
+        const data = await response.json();
+        setUsers(data);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const onChange = (e) => {
+    setProjectData({ ...projectData, [e.target.name]: e.target.value });
+  };
+
+  const onAddMember = () => {
+    const member = { user: selectedUser, role };
+    setProjectData({ ...projectData, members: [...projectData.members, member] });
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('http://localhost:5000/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'auth-token': token
+        },
+        body: JSON.stringify(projectData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create project');
+      }
+      const data = await response.json();
+      onSave(data);
+      onClose();
+    } catch (error) {
+      console.error('Failed to create project:', error);
+    }
+  };
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+      <div className="bg-white w-full max-w-lg p-6 rounded-lg shadow-lg">
+        <h2 className="text-2xl mb-4 text-red-500">Create New Project</h2>
+        <form onSubmit={onSubmit}>
+          <div className="mb-4">
+            <label className="block text-red-500">Project Name</label>
+            <input type="text" name="name" value={projectData.name} onChange={onChange} className="w-full p-2 border border-red-500 rounded" />
+          </div>
+          <div className="mb-4">
+            <label className="block text-red-500">Description</label>
+            <input type="text" name="description" value={projectData.description} onChange={onChange} className="w-full p-2 border border-red-500 rounded" />
+          </div>
+          <div className="mb-4">
+            <label className="block text-red-500">Deadline</label>
+            <input type="date" name="deadline" value={projectData.deadline} onChange={onChange} className="w-full p-2 border border-red-500 rounded" />
+          </div>
+          <div className="mb-4">
+            <label className="block text-red-500">Add Member</label>
+            <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} className="w-full p-2 border border-red-500 rounded">
+              <option value="">Select User</option>
+              {users.map((user) => (
+                <option key={user._id} value={user._id}>{user.name}</option>
+              ))}
+            </select>
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full p-2 border border-red-500 rounded mt-2">
+              <option value="Project Manager">Project Manager</option>
+              <option value="Team Member">Team Member</option>
+            </select>
+            <button type="button" onClick={onAddMember} className="mt-2 bg-red-500 text-white p-2 rounded">Add Member</button>
+          </div>
+          <div className="flex justify-end">
+            <button type="button" onClick={onClose} className="bg-gray-300 text-black p-2 rounded mr-2">Cancel</button>
+            <button type="submit" className="bg-red-500 text-white p-2 rounded">Create Project</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default ProjectModal;
+
+"projectlist.jsx"
+import React from 'react';
+
+const ProjectList = ({ projects }) => {
+  return (
+    <div className="mt-4">
+      {projects.length === 0 ? (
+        <p>No projects available</p>
+      ) : (
+        projects.map((project) => (
+          <div key={project._id} className="p-4 border mb-4 rounded">
+            <h3 className="text-xl font-bold">{project.name}</h3>
+            <p>{project.description}</p>
+            <p>Deadline: {new Date(project.deadline).toLocaleDateString()}</p>
+            <div>
+              <h4>Members:</h4>
+              <ul>
+                {project.members.map((member) => (
+                  <li key={`${member.user._id}-${member.role}`}>{member.user.name} ({member.role})</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4>Tasks:</h4>
+              <ul>
+                {project.tasks.map((task) => (
+                  <li key={task._id}>{task.title}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
+
+export default ProjectList;
+
+project.js model mongoose 
+// models/Project.js
+const mongoose = require('mongoose');
+
+const ProjectSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+    required: true,
+  },
+  deadline: {
+    type: Date,
+    required: true,
+  },
+  members: [
+    {
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      role: {
+        type: String,
+        enum: ['Project Manager', 'Team Member'],
+        required: true,
+      },
+    },
+  ],
+  tasks: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'notes',
+    },
+  ],
+}, { timestamps: true });
+
+module.exports = mongoose.model('Project', ProjectSchema);
+
+Now I want u add the following features , all of these should be added 
+1. I should be able to update and delete projects
+2. when click on update , modal box opens up , where I can do the edits
+3. in the viewing section of projects , only the project title should appear with a click to expand button , when  iclick on it the project details open up containing all the information parameters
+4. Iam not able to creat multiple projects right now. they are being stored in database but only one appears on screen
+5 i should be able to enter multiple members into my project. currently i can only enter one
+6.  the users being added to a project should also have that project as their role listen. what i mean by that is if i as user1 create and add a user 2 , if the user2 logs in , he should also be seeing the project from his page
+
+add all these features and write all code . implement each and every feature if it gets too long , just keep generating by asking me to continue
+
