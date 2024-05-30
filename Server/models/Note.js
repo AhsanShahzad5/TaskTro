@@ -1,5 +1,3 @@
-// models/Note.js
-
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -26,7 +24,12 @@ const notesSchema = new Schema({
     },
     dueDate: {
         type: Date,
-        required: true // or default: Date.now if you want to make it optional
+        required: true
+    },
+    status: {
+        type: String,
+        default: "in-progress",
+        enum: ["in-progress", "done"]
     }
 });
 

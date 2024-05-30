@@ -21,14 +21,14 @@ router.post('/addnote', fetchuser, [
     body('description', 'Description must be at least 5 characters').isLength({ min: 5 })
 ], async (req, res) => {
     try {
-        const { title, description, tag, dueDate } = req.body;
+        const { title, description, tag, dueDate , status} = req.body;
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
 
         const note = new Note({
-            title, description, tag, dueDate, user: req.user.id
+            title, description, tag, dueDate, status, user: req.user.id
         });
 
         const savedNote = await note.save();
@@ -44,7 +44,7 @@ router.post('/addnote', fetchuser, [
 // ROUTE 3: Update an existing Note using: PUT "/api/notes/updatenote". Login required
 //id so only that purticular user can update that note
 router.put('/updatenote/:id', fetchuser, async (req, res) => {
-    const { title, description, tag, dueDate } = req.body;
+    const { title, description, tag, dueDate , status } = req.body;
 
     try {
         // Log request body and parameters for debugging
@@ -62,7 +62,8 @@ router.put('/updatenote/:id', fetchuser, async (req, res) => {
         if (description) { newNote.description = description; }
         if (tag) { newNote.tag = tag; }
         if (dueDate) { newNote.dueDate = dueDate; }
-
+        if (status) { newNote.status = status; }
+        
         // Find the note to be updated and update it
         let note = await Note.findById(req.params.id);
         if (!note) {

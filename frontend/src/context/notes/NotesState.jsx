@@ -24,7 +24,7 @@ const NoteState = (props) => {
   };
 
   // Add a Note
-  const addNote = async (title, description, tag, dueDate) => {
+  const addNote = async (title, description, tag, dueDate , status = "in-progress") => {
     const token = getAuthToken();
     const response = await fetch(`${host}/api/notes/addnote`, {
       method: 'POST',
@@ -32,7 +32,7 @@ const NoteState = (props) => {
         'Content-Type': 'application/json',
         'auth-token': token
       },
-      body: JSON.stringify({ title, description, tag, dueDate })
+      body: JSON.stringify({ title, description, tag, dueDate , status })
     });
 
     const note = await response.json();
@@ -55,7 +55,7 @@ const NoteState = (props) => {
   };
 
   // Edit a Note
-  const editNote = async (id, title, description, tag, dueDate) => {
+  const editNote = async (id, title, description, tag, dueDate,status) => {
     const token = getAuthToken();
     try {
         const response = await fetch(`${host}/api/notes/updatenote/${id}`, {
@@ -64,7 +64,7 @@ const NoteState = (props) => {
                 'Content-Type': 'application/json',
                 'auth-token': token
             },
-            body: JSON.stringify({ title, description, tag, dueDate })
+            body: JSON.stringify({ title, description, tag, dueDate , status })
         });
 
         const data = await response.json();
