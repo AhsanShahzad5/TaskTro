@@ -8,6 +8,8 @@ import Login from './pages/Login.jsx'
 import Home from './pages/home/Home.jsx'
 import NotesState from './context/notes/NotesState.jsx'
 import { ProjectsProvider } from './context/ProjectState.jsx';
+import Pricing from './components/Pricing.jsx'
+import Integrations from './components/Integrations.jsx'
 
 const router = createBrowserRouter([
   {
@@ -25,6 +27,15 @@ const router = createBrowserRouter([
   {
     path: "/home",
     element: <Home />
+  } ,
+  {
+    path : "/pricing" ,
+    element : <Pricing/>
+  } ,
+  {
+
+    path : '/integrations' ,
+    element : <Integrations/>
   }
 ])
 

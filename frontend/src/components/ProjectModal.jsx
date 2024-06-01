@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { ProjectsContext } from '../context/ProjectState';
 import { getAuthToken } from '../utility/JWTtokenExport';
+import { useNavigate } from 'react-router-dom';
 
 const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
   const { users } = useContext(ProjectsContext);
@@ -13,6 +14,7 @@ const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
   const [selectedUser, setSelectedUser] = useState('');
   const [role, setRole] = useState('Team Member');
   const token = getAuthToken();
+  const navigate = useNavigate()
   useEffect(() => {
     if (project) {
       setProjectData(project);
@@ -54,6 +56,10 @@ const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
     }
   };
 
+const renderHome = ()=>{
+    navigate('/home')
+}
+
   if (!isOpen) return null;
 
   return (
@@ -89,7 +95,7 @@ const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
           </div>
           <div className="flex justify-end">
             <button type="button" onClick={onClose} className="bg-gray-300 text-black p-2 rounded mr-2">Cancel</button>
-            <button type="submit" className="bg-red-500 text-white p-2 rounded">Save</button>
+            <button type="submit" className="bg-red-500 text-white p-2 rounded " onClick={renderHome}>Save</button>
           </div>
         </form>
       </div>

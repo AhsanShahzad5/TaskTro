@@ -578,4 +578,4 @@ export default ProjectList;
 add following features to it
 1. my project modals should also have task CRUD functionality implemented into them , basically i already have the task crud built , but i also want it in my projects as well and another option is that i shud be able to select whom i want to asign that particular task , it should be an optional feature the assining part.
 i have the following task / notes crud related components if u need them let me know:
-"NotesState.jsx" , "NoteItem" , " 
+"NotesState.jsx having note context" , "TaskItem" , "task modal" " 

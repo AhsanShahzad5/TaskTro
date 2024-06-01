@@ -109,7 +109,7 @@ export default function AccountDropdown({ className }) {
             {["Activity Log", "Resources", "Upgrade to Pro"].map((item, index) => (
               <Link
                 key={index}
-                to="#"
+                to="/pricing"
                 className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-dark hover:bg-red-100"
               >
                 {item}
