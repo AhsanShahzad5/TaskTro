@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link , useNavigate} from 'react-router-dom';
 import userImg from '../../assets/images/user.jpg';
+import { getAuthToken } from "../../utility/JWTtokenExport";
 
 export default function AccountDropdown({ className }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
+  const token = getAuthToken()
   const trigger = useRef(null);
   const dropdown = useRef(null);
   const navigate = useNavigate()
@@ -47,6 +48,8 @@ export default function AccountDropdown({ className }) {
   }, [dropdownOpen]);
 
   const handleLogout = ()=>{
+    localStorage.removeItem("token");
+    localStorage.clear();
     navigate('/');
   }
   return (

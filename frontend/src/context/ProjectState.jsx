@@ -1,5 +1,5 @@
 import React, { createContext, useReducer, useEffect } from 'react';
-import { getAuthToken } from "../utility/JWTtokenExport";
+import { getAuthToken } from '../utility/JWTtokenExport'
 
 // Define initial state
 const initialState = {

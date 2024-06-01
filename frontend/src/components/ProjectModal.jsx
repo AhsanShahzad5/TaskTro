@@ -38,7 +38,7 @@ const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
       const method = project ? 'PUT' : 'POST';
       const url = project ? `http://localhost:5000/api/projects/${project._id}` : 'http://localhost:5000/api/projects';
       const response = await fetch(url, {
-        method,
+        method : method,
         headers: {
           'Content-Type': 'application/json',
           'auth-token': token
@@ -84,7 +84,7 @@ const renderHome = ()=>{
             <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} className="w-full p-2 border border-red-500 rounded">
               <option value="">Select User</option>
               {users.map(user => (
-                <option key={user._id} value={user._id}>{user.email}</option>
+                <option key={user._id} value={user.email}>{user.email}</option>
               ))}
             </select>
             <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full p-2 border border-red-500 rounded mt-2">
@@ -95,8 +95,10 @@ const renderHome = ()=>{
           </div>
           <div className="flex justify-end">
             <button type="button" onClick={onClose} className="bg-gray-300 text-black p-2 rounded mr-2">Cancel</button>
-            <button type="submit" className="bg-red-500 text-white p-2 rounded " onClick={renderHome}>Save</button>
+            <button type="submit" className="bg-red-500 text-white p-2 rounded " >Save</button>
+            {/*onClick={renderHome */}
           </div>
+
         </form>
       </div>
     </div>

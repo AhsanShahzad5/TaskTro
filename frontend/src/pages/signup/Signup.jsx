@@ -35,7 +35,8 @@ const SignUp = () => {
     if (response.status === 200) {
       // Save the auth token and redirect
       localStorage.setItem('token', json);
-      navigate('/login');
+      // navigate('/login');
+      navigate('/home');
     } else {
       alert("User with this email already exists or invalid details");
     }
