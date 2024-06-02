@@ -12,6 +12,8 @@ import Pricing from './components/Pricing.jsx'
 import Integrations from './components/Integrations.jsx'
 import ProjectsCreation from './pages/home/ProjectsCreation.jsx'
 import ProjectPageLayout from './pages/home/ProjectPageLayout.jsx'
+import CreateProfile from './components/CreateProfile.jsx'
+import Profile from './components/Profile.jsx'
 
 const router = createBrowserRouter([
   {
@@ -42,6 +44,15 @@ const router = createBrowserRouter([
   {
     path : '/projects' ,
     element : <ProjectPageLayout/>
+  } , 
+  {
+    path : '/CreateProfile' ,
+    element : <CreateProfile/>
+  }
+  , 
+  {
+    path : '/profile' ,
+    element : <Profile/>
   }
 ])
 

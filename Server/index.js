@@ -20,7 +20,7 @@ app.use(cors());
 app.use('/api/auth' , require('./routes/auth'));
 app.use('/api/notes' , require('./routes/notes'));
 app.use('/api/projects', require('./routes/project')); 
-
+app.use('/api/profile' ,require('./routes/profile'))
 //general
 app.get('/', (req, res) => {
   res.send('Hello Ahsan')

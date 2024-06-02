@@ -96,7 +96,7 @@ export default function AccountDropdown({ className }) {
           </div>
           <div>
             <Link
-              to="#"
+              to="/profile"
               className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-dark hover:bg-red-100"
             >
               View profile

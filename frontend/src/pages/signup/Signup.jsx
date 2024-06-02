@@ -36,7 +36,8 @@ const SignUp = () => {
       // Save the auth token and redirect
       localStorage.setItem('token', json);
       // navigate('/login');
-      navigate('/home');
+      navigate('/CreateProfile');
+      // navigate('/home');
     } else {
       alert("User with this email already exists or invalid details");
     }
