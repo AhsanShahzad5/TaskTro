@@ -26,6 +26,7 @@ const Login = () => {
     const json = await response.json();
     if (json.success) {
       localStorage.setItem('token', json.authToken);
+      localStorage.setItem('userId', json.userId);
       navigate('/home');
     } else {
       alert("Invalid credentials");

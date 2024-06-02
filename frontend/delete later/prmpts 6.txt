@@ -1,0 +1,455 @@
+import React, { useState, useEffect } from 'react';
+import { getAuthToken, getUserId } from '../utility/JWTtokenExport'; // Assuming getUserId is exported here
+import { useNavigate } from 'react-router-dom';
+
+const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
+  const [projectData, setProjectData] = useState({
+    name: '',
+    description: '',
+    deadline: '',
+    members: [],
+  });
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('Team Member');
+  const token = getAuthToken();
+  const userId = getUserId(); // Function to get the current user's ID
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (project) {
+      setProjectData(project);
+    }
+  }, [project]);
+
+  // Ensure createdBy is set to the current user ID
+  useEffect(() => {
+    setProjectData((prevData) => ({
+      ...prevData,
+      createdBy: userId,
+    }));
+  }, [userId]);
+
+  const onChange = (e) => {
+    setProjectData({ ...projectData, [e.target.name]: e.target.value });
+  };
+
+  const onAddMember = () => {
+    const member = { email, role };
+    setProjectData({ ...projectData, members: [...projectData.members, member] });
+    setEmail('');
+    setRole('Team Member');
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const method = project ? 'PUT' : 'POST';
+      const url = project ? `http://localhost:5000/api/projects/${project._id}` : 'http://localhost:5000/api/projects';
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'auth-token': token,
+        },
+        body: JSON.stringify(projectData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to save project');
+      }
+      const data = await response.json();
+      onSave(data);
+      onClose();
+    } catch (error) {
+      console.error('Failed to save project:', error);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+      <div className="bg-white w-full max-w-lg p-6 rounded-lg shadow-lg">
+        <h2 className="text-2xl mb-4 text-red-500">{project ? 'Edit Project' : 'Create New Project'}</h2>
+        <form onSubmit={onSubmit}>
+          <div className="mb-4">
+            <label className="block text-red-500">Project Name</label>
+            <input type="text" name="name" value={projectData.name} onChange={onChange} className="w-full p-2 border border-red-500 rounded" />
+          </div>
+          <div className="mb-4">
+            <label className="block text-red-500">Description</label>
+            <input type="text" name="description" value={projectData.description} onChange={onChange} className="w-full p-2 border border-red-500 rounded" />
+          </div>
+          <div className="mb-4">
+            <label className="block text-red-500">Deadline</label>
+            <input type="date" name="deadline" value={projectData.deadline} onChange={onChange} className="w-full p-2 border border-red-500 rounded" />
+          </div>
+          <div className="mb-4">
+            <label className="block text-red-500">Add Members</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter user email"
+              className="w-full p-2 border border-red-500 rounded mb-2"
+            />
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full p-2 border border-red-500 rounded">
+              <option value="Team Member">Team Member</option>
+              <option value="Project Manager">Project Manager</option>
+            </select>
+            <button type="button" onClick={onAddMember} className="mt-2 bg-red-500 text-white p-2 rounded">Add Member</button>
+          </div>
+          <div className="flex justify-end">
+            <button type="button" onClick={onClose} className="bg-gray-300 text-black p-2 rounded mr-2">Cancel</button>
+            <button type="submit" className="bg-red-500 text-white p-2 rounded">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default ProjectModal;
+
+import React, { useState, useEffect } from 'react';
+
+const ProjectList = ({ projects, onEdit, onDelete }) => {
+  const [expandedProjectId, setExpandedProjectId] = useState(null);
+
+  const toggleExpand = (projectId) => {
+    if (expandedProjectId === projectId) {
+      setExpandedProjectId(null);
+    } else {
+      setExpandedProjectId(projectId);
+    }
+  };
+
+  useEffect(() => {
+    console.log('Projects:', projects);
+  }, [projects]);
+
+  return (
+    <div className="mt-4">
+      {(!projects || projects.length === 0) ? (
+        <p>No projects available</p>
+      ) : (
+        projects.map((project) => (
+          <div key={project._id} className="p-4 border mb-4 rounded">
+            <div className="flex justify-between items-center">
+              <h3
+                className="text-xl font-bold cursor-pointer"
+                onClick={() => toggleExpand(project._id)}
+              >
+                {project.name || 'Unnamed Project'}
+              </h3>
+              <div className="flex space-x-2">
+                <button onClick={() => onEdit(project)} className="bg-yellow-500 text-white p-1 rounded">
+                  Edit
+                </button>
+                <button onClick={() => onDelete(project._id)} className="bg-red-500 text-white p-1 rounded">
+                  Delete
+                </button>
+              </div>
+            </div>
+            {expandedProjectId === project._id && (
+              <div>
+                <p>{project.description || 'No description available'}</p>
+                <p>Deadline: {project.deadline ? new Date(project.deadline).toLocaleDateString() : 'No deadline'}</p>
+                <div>
+                  <h4>Members:</h4>
+                  <ul>
+                    {project.members && project.members.length > 0 ? (
+                      project.members.map((member, index) => (
+                        <li key={`${member.user?._id}-${index}`}>
+                          {member.user?.name || 'Unknown User'} ({member.role || 'No role specified'})
+                        </li>
+                      ))
+                    ) : (
+                      <li>No members</li>
+                    )}
+                  </ul>
+                </div>
+                <div>
+                  <h4>Tasks:</h4>
+                  <ul>
+                    {project.tasks && project.tasks.length > 0 ? (
+                      project.tasks.map((task, index) => (
+                        <li key={`${task._id}-${index}`}>{task.title || 'Untitled Task'}</li>
+                      ))
+                    ) : (
+                      <li>No tasks</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
+
+export default ProjectList;
+
+const mongoose = require('mongoose');
+
+const ProjectSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+  },
+  deadline: {
+    type: Date,
+  },
+  members: [
+    {
+      email: {
+        type: String,
+        required: true,
+      },
+      role: {
+        type: String,
+        default: 'Team Member',
+      },
+    },
+  ],
+  tasks: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Note',
+    },
+  ],
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+});
+
+module.exports = mongoose.model('Project', ProjectSchema);
+
+const Project = require('../models/Project');
+const User = require('../models/User');
+const Note = require('../models/Note');
+
+// Helper function to validate email format
+const validateEmail = (email) => {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(String(email).toLowerCase());
+};
+
+// Get all projects for a user
+const getProjects = async (req, res) => {
+  try {
+    const projects = await Project.find({ 'members.user': req.user.id })
+      .populate('members.user', 'name')
+      .populate('tasks');
+    res.json(projects);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Create a new project
+const createProject = async (req, res) => {
+  const { name, description, deadline, members } = req.body;
+  try {
+    console.log("Received request to create a project with data:", { name, description, deadline, members });
+
+    // Ensure members is an array of member objects
+    const formattedMembers = Array.isArray(members) ? members : [{ email: members, role: 'Team Member' }];
+
+    // Validate email format and create members array
+    const validatedMembers = formattedMembers.map((member) => {
+      if (!validateEmail(member.email)) {
+        throw new Error(`Invalid email format: ${member.email}`);
+      }
+      return { email: member.email, role: member.role };
+    });
+
+    console.log("Validated members:", validatedMembers);
+
+    const newProject = new Project({
+      name,
+      description,
+      deadline,
+      members: validatedMembers,
+      createdBy: req.user.id, // Ensure createdBy is set to the current user
+    });
+
+    const project = await newProject.save();
+    console.log("Created new project:", project);
+
+    // Add the project to the user's projects array
+    const user = await User.findById(req.user.id);
+    user.projects.push(project._id);
+    await user.save();
+
+    res.json(project);
+  } catch (error) {
+    console.error('Error creating project:', error.message);
+    res.status(500).send(`Server Error: ${error.message}`);
+  }
+};
+
+// Add a member to a project
+const addMember = async (req, res) => {
+  const { projectId } = req.params;
+  const { email, role } = req.body;
+  try {
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+      return res.status(404).json({ msg: 'Project not found' });
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      return res.status(400).json({ msg: 'Invalid email format' });
+    }
+
+    project.members.push({ email, role });
+    await project.save();
+
+    res.json(project);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Assign a task to a project
+const assignTask = async (req, res) => {
+  const { projectId } = req.params;
+  const { taskId } = req.body;
+  try {
+    const project = await Project.findById(projectId);
+    const task = await Note.findById(taskId);
+
+    if (!project || !task) {
+      return res.status(404).json({ msg: 'Project or Task not found' });
+    }
+
+    project.tasks.push(taskId);
+    await project.save();
+
+    res.json(project);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Update an existing project
+const updateExistingProject = async (req, res) => {
+  const { name, description, deadline, members } = req.body;
+  try {
+    let project = await Project.findById(req.params.id);
+    console.log('Project before update:', project); // Logging the project before update
+
+    if (!project) return res.status(404).json({ msg: 'Project not found' });
+
+    // Validate email format for each member
+    const updatedMembers = members.map((member) => {
+      if (!validateEmail(member.email)) {
+        throw new Error(`Invalid email format: ${member.email}`);
+      }
+      return { email: member.email, role: member.role };
+    });
+
+    // Update the project fields
+    const updatedProject = {
+      name: name || project.name,
+      description: description || project.description,
+      deadline: deadline || project.deadline,
+      members: updatedMembers || project.members,
+    };
+
+    // Update the project in the database
+    project = await Project.findByIdAndUpdate(req.params.id, { $set: updatedProject }, { new: true });
+
+    // Log the updated project
+    console.log('Project after update:', project);
+
+    res.json(project);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Delete a project
+const deleteProject = async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+
+    if (!project) return res.status(404).json({ msg: 'Project not found' });
+
+    await Project.findByIdAndDelete(req.params.id);
+
+    // Remove the project from the user's projects array
+    const user = await User.findById(project.createdBy);
+    user.projects = user.projects.filter(projectId => projectId.toString() !== req.params.id);
+    await user.save();
+
+    res.json({ msg: 'Project removed' });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+module.exports = {
+  getProjects,
+  createProject,
+  addMember,
+  assignTask,
+  updateExistingProject,
+  deleteProject,
+};
+
+
+
+// basically models folder contains our schemas that we will make using mongoose to use in mongodb. it gives structure to the documents(tables) we will make
+
+const mongoose = require('mongoose')
+const Schema = mongoose.Schema;
+
+const userSchema = new Schema({
+ 
+    name: {
+        type: String,
+        required: true
+    },
+
+    email: {
+        type: String,
+        required: true ,
+        unique: true
+    },
+
+    password: {
+        type: String,
+        required: true
+    }
+    ,
+
+    date: {
+        type: Date,
+        default: Date.now 
+    },
+    projects: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Project',
+        },
+      ],
+    }, { timestamps: true 
+});
+
+const User = mongoose.model('User' , userSchema);
+module.exports = User ;

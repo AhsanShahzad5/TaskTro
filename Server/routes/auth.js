@@ -115,8 +115,8 @@ router.post('/login', [
                 id: user.id
             }
         }
-        const authToken = jwt.sign(data, JWT_SECRET);
-        res.json({ success: true, authToken });
+        const authToken = jwt.sign(data, JWT_SECRET ,  { expiresIn: '1h' });
+        res.json({ success: true, authToken , userId: user._id });
 
     } catch (error) {
         console.log(error.message);

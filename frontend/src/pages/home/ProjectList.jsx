@@ -17,7 +17,7 @@ const ProjectList = ({ projects, onEdit, onDelete }) => {
 
   return (
     <div className="mt-4">
-      {projects.length === 0 ? (
+      {(!projects || projects.length === 0) ? (
         <p>No projects available</p>
       ) : (
         projects.map((project) => (
@@ -47,8 +47,9 @@ const ProjectList = ({ projects, onEdit, onDelete }) => {
                   <ul>
                     {project.members && project.members.length > 0 ? (
                       project.members.map((member, index) => (
-                        <li key={`${member.user._id}-${index}`}>
-                          {member.user?.name || 'Unknown User'} ({member.role || 'No role specified'})
+                        <li key={`${member.user?._id}-${index}`}>
+                          {console.log('Member:', member)} 
+                          {member?.email || 'Unknown User'} ({member.role || 'No role specified'})
                         </li>
                       ))
                     ) : (

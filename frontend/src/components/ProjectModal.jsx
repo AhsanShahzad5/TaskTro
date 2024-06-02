@@ -1,34 +1,41 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { ProjectsContext } from '../context/ProjectState';
-import { getAuthToken } from '../utility/JWTtokenExport';
+import React, { useState, useEffect } from 'react';
+import { getAuthToken, getUserId } from '../utility/JWTtokenExport';
 import { useNavigate } from 'react-router-dom';
 
 const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
-  const { users } = useContext(ProjectsContext);
   const [projectData, setProjectData] = useState({
     name: '',
     description: '',
     deadline: '',
     members: [],
+    createdBy: '',
   });
-  const [selectedUser, setSelectedUser] = useState('');
+  const [email, setEmail] = useState('');
   const [role, setRole] = useState('Team Member');
-  const token = getAuthToken();
-  const navigate = useNavigate()
+  const token = getAuthToken()
+  const userId = localStorage.getItem('userId');
+  const navigate = useNavigate();
+
   useEffect(() => {
     if (project) {
       setProjectData(project);
+    } else {
+      // Ensure createdBy is set to the current user ID for new projects
+      setProjectData((prevData) => ({
+        ...prevData,
+        createdBy: userId,
+      }));
     }
-  }, [project]);
+  }, [project, userId]);
 
   const onChange = (e) => {
     setProjectData({ ...projectData, [e.target.name]: e.target.value });
   };
 
   const onAddMember = () => {
-    const member = { user: selectedUser, role };
+    const member = { email, role };
     setProjectData({ ...projectData, members: [...projectData.members, member] });
-    setSelectedUser('');
+    setEmail('');
     setRole('Team Member');
   };
 
@@ -38,10 +45,10 @@ const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
       const method = project ? 'PUT' : 'POST';
       const url = project ? `http://localhost:5000/api/projects/${project._id}` : 'http://localhost:5000/api/projects';
       const response = await fetch(url, {
-        method : method,
+        method: method,
         headers: {
           'Content-Type': 'application/json',
-          'auth-token': token
+          'auth-token': token,
         },
         body: JSON.stringify(projectData),
       });
@@ -55,10 +62,6 @@ const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
       console.error('Failed to save project:', error);
     }
   };
-
-const renderHome = ()=>{
-    navigate('/home')
-}
 
   if (!isOpen) return null;
 
@@ -81,13 +84,14 @@ const renderHome = ()=>{
           </div>
           <div className="mb-4">
             <label className="block text-red-500">Add Members</label>
-            <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} className="w-full p-2 border border-red-500 rounded">
-              <option value="">Select User</option>
-              {users.map(user => (
-                <option key={user._id} value={user.email}>{user.email}</option>
-              ))}
-            </select>
-            <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full p-2 border border-red-500 rounded mt-2">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter user email"
+              className="w-full p-2 border border-red-500 rounded mb-2"
+            />
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full p-2 border border-red-500 rounded">
               <option value="Team Member">Team Member</option>
               <option value="Project Manager">Project Manager</option>
             </select>
@@ -95,10 +99,8 @@ const renderHome = ()=>{
           </div>
           <div className="flex justify-end">
             <button type="button" onClick={onClose} className="bg-gray-300 text-black p-2 rounded mr-2">Cancel</button>
-            <button type="submit" className="bg-red-500 text-white p-2 rounded " >Save</button>
-            {/*onClick={renderHome */}
+            <button type="submit" className="bg-red-500 text-white p-2 rounded">Save</button>
           </div>
-
         </form>
       </div>
     </div>

@@ -1,13 +1,24 @@
 const Project = require('../models/Project');
 const User = require('../models/User');
 const Note = require('../models/Note');
+const { get } = require('../routes/project');
+
+// Helper function to validate email format
+const validateEmail = (email) => {
+  // Allow empty or placeholder emails to pass
+  if (!email || email === 'placeholder@') return true;
+  
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(String(email).toLowerCase());
+};
+
 
 // Get all projects for a user
 const getProjects = async (req, res) => {
   try {
-    const projects = await Project.find({ 'members.user': req.user.id })
-      .populate('members.user', 'name')
-      .populate('tasks');
+    const projects = await Project.find({ 'createdBy': req.user.id })
+      .populate('members.email', 'name') // Assuming email is used as the identifier for members
+      .populate('tasks'); // Assuming 'Note' is the correct model for tasks
     res.json(projects);
   } catch (error) {
     console.error(error.message);
@@ -15,45 +26,33 @@ const getProjects = async (req, res) => {
   }
 };
 
+
 // Create a new project
 const createProject = async (req, res) => {
   const { name, description, deadline, members } = req.body;
   try {
-    console.log("Received request to create a project with data:", { name, description, deadline, members });
+    const formattedMembers = Array.isArray(members) ? members : [{ email: members, role: 'Team Member' }];
 
-    // Ensure members is an array of member objects
-    const formattedMembers = Array.isArray(members) ? members : [{ user: members, role: 'Team Member' }];
-
-    // Validate user existence and convert email to user ID
-    const validatedMembers = await Promise.all(formattedMembers.map(async (member) => {
-      const userEmail = member.user.trim().toLowerCase();
-      console.log(`Searching for user with email: ${userEmail}`);
-      const user = await User.findOne({ email: userEmail });
-      if (!user) {
-        throw new Error(`User with email ${userEmail} not found`);
+    const validatedMembers = formattedMembers.map((member) => {
+      if (!validateEmail(member.email)) {
+        throw new Error(`Invalid email format: ${member.email}`);
       }
-      return { user: user._id, role: member.role };
-    }));
-
-    console.log("Validated members:", validatedMembers);
+      return { email: member.email, role: member.role };
+    });
 
     const newProject = new Project({
       name,
       description,
       deadline,
       members: validatedMembers,
+      createdBy: req.user.id, // Ensure createdBy is set to the current user ID
     });
 
     const project = await newProject.save();
-    console.log("Created new project:", project);
 
-    // Add project to each member's profile
-    const memberPromises = project.members.map(async (member) => {
-      await User.findByIdAndUpdate(member.user, { $addToSet: { projects: project._id } });
-    });
-    await Promise.all(memberPromises);
-
-    console.log("Added project to each member's profile");
+    const user = await User.findById(req.user.id);
+    user.projects.push(project._id);
+    await user.save();
 
     res.json(project);
   } catch (error) {
@@ -62,23 +61,24 @@ const createProject = async (req, res) => {
   }
 };
 
-
 // Add a member to a project
 const addMember = async (req, res) => {
   const { projectId } = req.params;
-  const { userId, role } = req.body;
+  const { email, role } = req.body;
   try {
     const project = await Project.findById(projectId);
-    const user = await User.findById(userId);
 
-    if (!project || !user) {
-      return res.status(404).json({ msg: 'Project or User not found' });
+    if (!project) {
+      return res.status(404).json({ msg: 'Project not found' });
     }
 
-    project.members.push({ user: userId, role });
-    await project.save();
+    // Validate email format
+    if (!validateEmail(email)) {
+      return res.status(400).json({ msg: 'Invalid email format' });
+    }
 
-    await User.findByIdAndUpdate(userId, { $addToSet: { projects: projectId } });
+    project.members.push({ email, role });
+    await project.save();
 
     res.json(project);
   } catch (error) {
@@ -118,14 +118,13 @@ const updateExistingProject = async (req, res) => {
 
     if (!project) return res.status(404).json({ msg: 'Project not found' });
 
-    // Find user IDs from the provided emails
-    const updatedMembers = await Promise.all(members.map(async (member) => {
-      const user = await User.findOne({ email: member.user }); // Find user by email
-      if (user) {
-        return { user: user._id, role: member.role };
+    // Validate email format for each member
+    const updatedMembers = members.map((member) => {
+      if (!validateEmail(member.email)) {
+        throw new Error(`Invalid email format: ${member.email}`);
       }
-      throw new Error(`User with email ${member.user} not found`);
-    }));
+      return { email: member.email, role: member.role };
+    });
 
     // Update the project fields
     const updatedProject = {
@@ -141,26 +140,6 @@ const updateExistingProject = async (req, res) => {
     // Log the updated project
     console.log('Project after update:', project);
 
-    // Update members' profiles
-    const oldMembers = project.members.map(member => member.user.toString());
-    const newMembers = (updatedMembers || project.members).map(member => member.user.toString());
-
-    // Remove project from old members who are no longer part of the project
-    const membersToRemove = oldMembers.filter(member => !newMembers.includes(member));
-    const removePromises = membersToRemove.map(async (memberId) => {
-      console.log('Removing project from member:', memberId);
-      await User.findByIdAndUpdate(memberId, { $pull: { projects: project._id } });
-    });
-
-    // Add project to new members
-    const membersToAdd = newMembers.filter(member => !oldMembers.includes(member));
-    const addPromises = membersToAdd.map(async (memberId) => {
-      console.log('Adding project to member:', memberId);
-      await User.findByIdAndUpdate(memberId, { $addToSet: { projects: project._id } });
-    });
-
-    await Promise.all([...removePromises, ...addPromises]);
-
     res.json(project);
   } catch (error) {
     console.error(error.message);
@@ -175,13 +154,12 @@ const deleteProject = async (req, res) => {
 
     if (!project) return res.status(404).json({ msg: 'Project not found' });
 
-    // Remove project from all members' profiles
-    const memberPromises = project.members.map(async (member) => {
-      await User.findByIdAndUpdate(member.user, { $pull: { projects: project._id } });
-    });
-    await Promise.all(memberPromises);
-
     await Project.findByIdAndDelete(req.params.id);
+
+    // Remove the project from the user's projects array
+    const user = await User.findById(project.createdBy);
+    user.projects = user.projects.filter(projectId => projectId.toString() !== req.params.id);
+    await user.save();
 
     res.json({ msg: 'Project removed' });
   } catch (error) {

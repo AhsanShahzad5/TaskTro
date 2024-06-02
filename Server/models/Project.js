@@ -1,4 +1,3 @@
-// models/Project.js
 const mongoose = require('mongoose');
 
 const ProjectSchema = new mongoose.Schema({
@@ -8,22 +7,19 @@ const ProjectSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true,
   },
   deadline: {
     type: Date,
-    required: true,
   },
   members: [
     {
-      user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+      email: {
+        type: String,
+        required: true,
       },
       role: {
         type: String,
-        enum: ['Project Manager', 'Team Member'],
-        required: true,
+        default: 'Team Member',
       },
     },
   ],
@@ -33,6 +29,11 @@ const ProjectSchema = new mongoose.Schema({
       ref: 'notes',
     },
   ],
-}, { timestamps: true });
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+});
 
 module.exports = mongoose.model('Project', ProjectSchema);
