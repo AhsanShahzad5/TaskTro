@@ -19,7 +19,7 @@ const Home = () => {
     <>
 
       <div className="flex m-5 p-5">
-        <PageLeftSide />
+        <PageLeftSide link = '/projects' page = 'Projects'/>
         <PageRightSide />
       </div>
 

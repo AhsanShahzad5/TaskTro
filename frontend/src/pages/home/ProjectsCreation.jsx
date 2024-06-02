@@ -36,14 +36,16 @@ const ProjectsCreation = () => {
 
   return (
     <>
-      <div className="mt-6 flex">
-        <p className="text-red-500 font-bold cursor-pointer flex-grow">My Projects</p>
-        <div className='cursor-pointer flex-shrink mt-1'>
-          <MdArrowDropDown />
-        </div>
-      </div>
+
       <div>
-        <button onClick={() => openModal()} className="cursor-pointer mt-5 bg-red-500 text-white p-2 rounded">Create New Project</button>
+        <button onClick={() => openModal()} className="cursor-pointer mt-2 ml-10 bg-red-500 text-white p-2 rounded ">Create New Project</button>
+        <div className="mt-6 flex">
+          <p className="text-red-500 font-bold cursor-pointer  " style={{
+                'font-size': '2rem'
+          }}>My Projects</p>
+
+        </div>
+
         <ProjectModal isOpen={isModalOpen} onClose={closeModal} onSave={saveProject} project={selectedProject} />
         <ProjectList projects={projects} onEdit={openModal} onDelete={deleteProject} />
       </div>

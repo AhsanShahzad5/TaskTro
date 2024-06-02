@@ -10,6 +10,8 @@ import NotesState from './context/notes/NotesState.jsx'
 import { ProjectsProvider } from './context/ProjectState.jsx';
 import Pricing from './components/Pricing.jsx'
 import Integrations from './components/Integrations.jsx'
+import ProjectsCreation from './pages/home/ProjectsCreation.jsx'
+import ProjectPageLayout from './pages/home/ProjectPageLayout.jsx'
 
 const router = createBrowserRouter([
   {
@@ -36,6 +38,10 @@ const router = createBrowserRouter([
 
     path : '/integrations' ,
     element : <Integrations/>
+  } , 
+  {
+    path : '/projects' ,
+    element : <ProjectPageLayout/>
   }
 ])
 

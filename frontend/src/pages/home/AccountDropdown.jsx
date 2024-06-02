@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link , useNavigate} from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import userImg from '../../assets/images/user.jpg';
 import { getAuthToken } from "../../utility/JWTtokenExport";
 
@@ -47,7 +47,7 @@ export default function AccountDropdown({ className }) {
     return () => document.removeEventListener("keydown", keyHandler);
   }, [dropdownOpen]);
 
-  const handleLogout = ()=>{
+  const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.clear();
     navigate('/');
@@ -90,26 +90,35 @@ export default function AccountDropdown({ className }) {
               <span className="absolute -right-0.5 -top-0.5 block h-3.5 w-3.5 rounded-full border-2 border-white bg-green"></span>
             </div>
             <div>
-              <p className="text-sm font-semibold text-dark">Ahsan Shahzad</p>
-              <p className="text-sm text-body-color">ahsan@company.com</p>
+              <p className="text-sm font-semibold text-dark">Welcome , User</p>
+              {/* <p className="text-sm text-body-color">User@email.com</p> */}
             </div>
           </div>
           <div>
-            {["View profile", "Settings", "Add a team"].map((item, index) => (
-              <Link
-                key={index}
-                to="#"
-                className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-dark hover:bg-red-100"
-              >
-                {item}
-                {item === "Add a team" && (
-                  <span className="text-xs text-dark-5"> "+" </span>
-                )}
-              </Link>
-            ))}
+            <Link
+              to="#"
+              className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-dark hover:bg-red-100"
+            >
+              View profile
+            </Link>
+
+            <Link
+              to="#"
+              className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-dark hover:bg-red-100"
+            >
+              Settings
+            </Link>
+
+            <Link
+              to="/projects"
+              className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-dark hover:bg-red-100"
+            >
+              Add a team
+              <span className="text-xs text-dark-5"> + </span>
+            </Link>
           </div>
           <div>
-            {["Activity Log", "Resources", "Upgrade to Pro"].map((item, index) => (
+            {["Resources", "Upgrade to Pro"].map((item, index) => (
               <Link
                 key={index}
                 to="/pricing"
@@ -120,12 +129,7 @@ export default function AccountDropdown({ className }) {
             ))}
           </div>
           <div>
-            <Link
-              to="#"
-              className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-dark hover:bg-red-100"
-            >
-              Sync
-            </Link>
+
           </div>
           <div>
             <button className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-dark hover:bg-red-100" onClick={handleLogout}>

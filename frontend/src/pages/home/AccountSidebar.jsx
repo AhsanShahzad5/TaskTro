@@ -5,7 +5,8 @@ import { CgCalendarToday } from "react-icons/cg"
 import { FaCalendarAlt } from "react-icons/fa";
 import { TbFilterSearch } from "react-icons/tb";
 import ProjectsCreation from './ProjectsCreation';
-const AccountSidebar = ({className}) => {
+import { useNavigate } from 'react-router-dom';
+const AccountSidebar = ({className , link , page}) => {
   const [selected, setSelected] = useState('');
 
   const menuItems = [
@@ -14,7 +15,10 @@ const AccountSidebar = ({className}) => {
     { name: 'Upcoming', count: 0, icon: UpcomingIcon },
     { name: 'Filters & Labels', count: 0, icon: FiltersLabelsIcon },
   ];
-
+  const navigate = useNavigate()
+  const goToProjects = ()=>{
+    navigate(`${link}`)
+  }
   return (
     <div className={`w-64 h-screen p-4  ${className}`}>
       
@@ -37,7 +41,7 @@ const AccountSidebar = ({className}) => {
           </div>
         ))}
       </div>
-      <ProjectsCreation/>
+      <button type="button" className='mt-5  bg-red-500 text-white px-4 py-2 rounded-lg' onClick={goToProjects} >Go to {page}</button>
     </div>
   );
 };

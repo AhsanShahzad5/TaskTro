@@ -24,13 +24,13 @@ const ProjectList = ({ projects, onEdit, onDelete }) => {
           <div key={project._id} className="p-4 border mb-4 rounded">
             <div className="flex justify-between items-center">
               <h3
-                className="text-xl font-bold cursor-pointer"
+                className="text-xl font-bold cursor-pointer mr-5"
                 onClick={() => toggleExpand(project._id)}
               >
                 {project.name || 'Unnamed Project'}
               </h3>
               <div className="flex space-x-2">
-                <button onClick={() => onEdit(project)} className="bg-yellow-500 text-white p-1 rounded">
+                <button onClick={() => onEdit(project)} className="bg-red-500 text-white p-1 rounded">
                   Edit
                 </button>
                 <button onClick={() => onDelete(project._id)} className="bg-red-500 text-white p-1 rounded">
