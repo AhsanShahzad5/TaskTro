@@ -22,7 +22,7 @@ const AccountSidebar = ({className , link , page}) => {
   return (
     <div className={`w-64 h-screen p-4  ${className}`}>
       
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         {menuItems.map(item => (
           <div
             key={item.name}
@@ -40,7 +40,7 @@ const AccountSidebar = ({className , link , page}) => {
             )}
           </div>
         ))}
-      </div>
+      </div> */}
       <button type="button" className='mt-5  bg-red-500 text-white px-4 py-2 rounded-lg' onClick={goToProjects} >Go to {page}</button>
     </div>
   );

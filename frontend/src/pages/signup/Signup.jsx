@@ -167,13 +167,13 @@ const SignUp = () => {
                   className="w-full cursor-pointer rounded-lg border border-red-500 bg-red-500 p-3 text-white transition hover:bg-red-400"
                 />
               </div>
-
+{/* 
               <button className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-gray-200 p-3 hover:bg-opacity-90 hover:border-red-500">
                 Sign up with Google
                 <span>
                   <FirstSvg />
                 </span>
-              </button>
+              </button> */}
 
               <div className="mt-4 text-center">
                 <p>

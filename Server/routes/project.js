@@ -6,7 +6,10 @@ const {
   addMember,
   assignTask,
   updateExistingProject,
-  deleteProject
+  deleteProject,
+  addTask,
+  updateTask,
+  deleteTask,
 } = require('../controllers/projectController');
 const fetchuser = require('../middleware/fetchuser');
 
@@ -27,5 +30,10 @@ router.put('/:id', fetchuser, updateExistingProject);
 
 // Delete a project
 router.delete('/:id', fetchuser, deleteProject);
+
+// Task routes
+router.post('/:projectId/tasks', fetchuser, addTask);
+router.put('/:projectId/tasks/:taskId', fetchuser, updateTask);
+router.delete('/:projectId/tasks/:taskId', fetchuser, deleteTask);
 
 module.exports = router;

@@ -1,0 +1,1347 @@
+ok so i have thefollowing project files :
+
+import React, { createContext, useReducer, useEffect } from 'react';
+import { getAuthToken } from '../utility/JWTtokenExport'
+
+// Define initial state
+const initialState = {
+  projects: [],
+  selectedProject: null,
+  isModalOpen: false,
+  users: []
+};
+
+// Create context
+const ProjectsContext = createContext(initialState);
+
+// Reducer
+const projectsReducer = (state, action) => {
+  switch (action.type) {
+    case 'SET_PROJECTS':
+      return {
+        ...state,
+        projects: action.payload
+      };
+    case 'SET_SELECTED_PROJECT':
+      return {
+        ...state,
+        selectedProject: action.payload
+      };
+    case 'TOGGLE_MODAL':
+      return {
+        ...state,
+        isModalOpen: !state.isModalOpen
+      };
+    case 'SET_USERS':
+      return {
+        ...state,
+        users: action.payload
+      };
+    case 'ADD_PROJECT':
+      return {
+        ...state,
+        projects: [...state.projects, action.payload]
+      };
+    case 'UPDATE_PROJECT':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project._id === action.payload._id ? action.payload : project
+        )
+      };
+    case 'DELETE_PROJECT':
+      return {
+        ...state,
+        projects: state.projects.filter(project => project._id !== action.payload)
+      };
+    default:
+      return state;
+  }
+};
+
+// Provider component
+const ProjectsProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(projectsReducer, initialState);
+  const token = getAuthToken();
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/projects', {
+          headers: {
+            'Content-Type': 'application/json',
+            'auth-token': token
+          }
+        });
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        dispatch({ type: 'SET_PROJECTS', payload: data });
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+      }
+    };
+
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/getAllUsers', {
+          headers: {
+            'Content-Type': 'application/json',
+            'auth-token': token
+          }
+        });
+        const data = await response.json();
+        dispatch({ type: 'SET_USERS', payload: data });
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      }
+    };
+
+    fetchProjects();
+    fetchUsers();
+  }, [token]);
+
+  const toggleModal = () => {
+    dispatch({ type: 'TOGGLE_MODAL' });
+  };
+
+  const setSelectedProject = (project) => {
+    dispatch({ type: 'SET_SELECTED_PROJECT', payload: project });
+  };
+
+  const addProject = (project) => {
+    dispatch({ type: 'ADD_PROJECT', payload: project });
+  };
+
+  const updateProject = (project) => {
+    dispatch({ type: 'UPDATE_PROJECT', payload: project });
+  };
+
+  const deleteProject = async (projectId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'auth-token': token
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete project');
+      }
+      dispatch({ type: 'DELETE_PROJECT', payload: projectId });
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+    }
+  };
+
+  return (
+    <ProjectsContext.Provider
+      value={{
+        projects: state.projects,
+        selectedProject: state.selectedProject,
+        isModalOpen: state.isModalOpen,
+        users: state.users,
+        toggleModal,
+        setSelectedProject,
+        addProject,
+        updateProject,
+        deleteProject
+      }}
+    >
+      {children}
+    </ProjectsContext.Provider>
+  );
+};
+
+export { ProjectsProvider, ProjectsContext };
+
+
+
+import React, { useState, useEffect } from 'react';
+
+const ProjectTaskForm = ({ task, onSave, onDelete }) => {
+  const [taskData, setTaskData] = useState(task || { title: '', description: '', dueDate: '', status: 'in-progress' });
+
+  const onChange = (e) => {
+    setTaskData({ ...taskData, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = () => {
+    onSave(taskData);
+  };
+
+  return (
+    <div className="mb-4">
+      <input
+        type="text"
+        name="title"
+        value={taskData.title}
+        onChange={onChange}
+        placeholder="Task Title"
+        className="w-full p-2 border border-red-500 rounded mb-2"
+      />
+      <input
+        type="text"
+        name="description"
+        value={taskData.description}
+        onChange={onChange}
+        placeholder="Description"
+        className="w-full p-2 border border-red-500 rounded mb-2"
+      />
+      <input
+        type="date"
+        name="dueDate"
+        value={taskData.dueDate}
+        onChange={onChange}
+        className="w-full p-2 border border-red-500 rounded mb-2"
+      />
+      <select
+        name="status"
+        value={taskData.status}
+        onChange={onChange}
+        className="w-full p-2 border border-red-500 rounded mb-2"
+      >
+        <option value="in-progress">In Progress</option>
+        <option value="done">Done</option>
+      </select>
+      <button type="button" onClick={handleSave} className="bg-red-500 text-white p-2 rounded mr-2">Save Task</button>
+      {onDelete && (
+        <button type="button" onClick={onDelete} className="bg-red-500 text-white p-2 rounded">Delete Task</button>
+      )}
+    </div>
+  );
+};
+
+export default ProjectTaskForm;
+
+
+
+import React, { useState, useEffect } from 'react';
+import { getAuthToken } from '../utility/JWTtokenExport';
+import { useNavigate } from 'react-router-dom';
+import ProjectTaskForm from './ProjectTaskForm';
+
+const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
+  const [projectData, setProjectData] = useState({
+    name: '',
+    description: '',
+    deadline: '',
+    members: [],
+    tasks: [],
+    createdBy: '',
+  });
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('Team Member');
+  const token = getAuthToken();
+  const userId = localStorage.getItem('userId');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (project) {
+      setProjectData(project);
+    } else {
+      setProjectData((prevData) => ({
+        ...prevData,
+        createdBy: userId,
+      }));
+    }
+  }, [project, userId]);
+
+  const onChange = (e) => {
+    setProjectData({ ...projectData, [e.target.name]: e.target.value });
+  };
+
+  const onAddMember = () => {
+    const member = { email, role };
+    setProjectData({ ...projectData, members: [...projectData.members, member] });
+    setEmail('');
+    setRole('Team Member');
+  };
+
+  const onTaskSave = (task) => {
+    if (task._id) {
+      setProjectData({
+        ...projectData,
+        tasks: projectData.tasks.map((t) => (t._id === task._id ? task : t)),
+      });
+    } else {
+      const newTask = { ...task, _id: Date.now().toString() }; // Temporary ID until saved to DB
+      setProjectData({
+        ...projectData,
+        tasks: [...projectData.tasks, newTask],
+      });
+    }
+  };
+
+  const onTaskDelete = (taskId) => {
+    setProjectData({
+      ...projectData,
+      tasks: projectData.tasks.filter((t) => t._id !== taskId),
+    });
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const method = project ? 'PUT' : 'POST';
+      const url = project ? `http://localhost:5000/api/projects/${project._id}` : 'http://localhost:5000/api/projects';
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'auth-token': token,
+        },
+        body: JSON.stringify(projectData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to save project');
+      }
+      const data = await response.json();
+      onSave(data);
+      onClose();
+    } catch (error) {
+      console.error('Failed to save project:', error);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="overflow-y-auto fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+      <div className="bg-white w-full max-w-lg p-6 rounded-lg shadow-lg">
+        <h2 className="text-2xl mb-4 text-red-500">{project ? 'Edit Project' : 'Create New Project'}</h2>
+        <form onSubmit={onSubmit}>
+          <div className="mb-4">
+            <label className="block text-red-500">Project Name</label>
+            <input
+              type="text"
+              name="name"
+              value={projectData.name}
+              onChange={onChange}
+              className="w-full p-2 border border-red-500 rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-red-500">Description</label>
+            <input
+              type="text"
+              name="description"
+              value={projectData.description}
+              onChange={onChange}
+              className="w-full p-2 border border-red-500 rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-red-500">Deadline</label>
+            <input
+              type="date"
+              name="deadline"
+              value={projectData.deadline}
+              onChange={onChange}
+              className="w-full p-2 border border-red-500 rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-red-500">Add Members</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter user email"
+              className="w-full p-2 border border-red-500 rounded mb-2"
+            />
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full p-2 border border-red-500 rounded"
+            >
+              <option value="Team Member">Team Member</option>
+              <option value="Project Manager">Project Manager</option>
+            </select>
+            <button type="button" onClick={onAddMember} className="mt-2 bg-red-500 text-white p-2 rounded">Add Member</button>
+          </div>
+          <div>
+            <h4 className="text-red-500">Tasks:</h4>
+            {projectData.tasks.map((task) => (
+              <ProjectTaskForm
+                key={task._id}
+                task={task}
+                onSave={(updatedTask) => onTaskSave(updatedTask)}
+                onDelete={() => onTaskDelete(task._id)}
+              />
+            ))}
+            <ProjectTaskForm onSave={onTaskSave} />
+          </div>
+          <div className="flex justify-end">
+            <button type="button" onClick={onClose} className="bg-gray-300 text-black p-2 rounded mr-2">Cancel</button>
+            <button type="submit" className="bg-red-500 text-white p-2 rounded">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default ProjectModal;
+
+
+import React, { useState, useEffect } from 'react';
+
+const ProjectList = ({ projects, onEdit, onDelete }) => {
+  const [expandedProjectId, setExpandedProjectId] = useState(null);
+
+  const toggleExpand = (projectId) => {
+    if (expandedProjectId === projectId) {
+      setExpandedProjectId(null);
+    } else {
+      setExpandedProjectId(projectId);
+    }
+  };
+
+  useEffect(() => {
+    console.log('Projects:', projects);
+  }, [projects]);
+
+  return (
+    <div className="mt-4">
+      {(!projects || projects.length === 0) ? (
+        <p>No projects available</p>
+      ) : (
+        projects.map((project) => (
+          <div key={project._id} className="p-4 border mb-4 rounded">
+            <div className="flex justify-between items-center">
+              <h3
+                className="text-xl font-bold cursor-pointer mr-5"
+                onClick={() => toggleExpand(project._id)}
+              >
+                {project.name || 'Unnamed Project'}
+              </h3>
+              <div className="flex space-x-2">
+                <button onClick={() => onEdit(project)} className="bg-red-500 text-white p-1 rounded">
+                  Edit
+                </button>
+                <button onClick={() => onDelete(project._id)} className="bg-red-500 text-white p-1 rounded">
+                  Delete
+                </button>
+              </div>
+            </div>
+            {expandedProjectId === project._id && (
+              <div>
+                <p>{project.description || 'No description available'}</p>
+                <p>Deadline: {project.deadline ? new Date(project.deadline).toLocaleDateString() : 'No deadline'}</p>
+                <div>
+                  <h4>Members:</h4>
+                  <ul>
+                    {project.members && project.members.length > 0 ? (
+                      project.members.map((member, index) => (
+                        <li key={`${member.user?._id}-${index}`}>
+                          {console.log('Member:', member)} 
+                          {member?.email || 'Unknown User'} ({member.role || 'No role specified'})
+                        </li>
+                      ))
+                    ) : (
+                      <li>No members</li>
+                    )}
+                  </ul>
+                </div>
+                <div>
+                  <h4>Tasks:</h4>
+                  <ul>
+                    {project.tasks && project.tasks.length > 0 ? (
+                      project.tasks.map((task, index) => (
+                        <li key={`${task._id}-${index}`}>{task.title || 'Untitled Task'}</li>
+                      ))
+                    ) : (
+                      <li>No tasks</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
+
+export default ProjectList;
+
+
+here is backend :
+const mongoose = require('mongoose');
+
+const ProjectSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+  },
+  deadline: {
+    type: Date,
+  },
+  members: [
+    {
+      email: {
+        type: String,
+        required: true,
+      },
+      role: {
+        type: String,
+        default: 'Team Member',
+      },
+    },
+  ],
+  tasks: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'notes',
+    },
+  ],
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+});
+
+module.exports = mongoose.model('Project', ProjectSchema);
+
+
+const express = require('express');
+const router = express.Router();
+const {
+  getProjects,
+  createProject,
+  addMember,
+  assignTask,
+  updateExistingProject,
+  deleteProject ,addTask, updateTask, deleteTask
+} = require('../controllers/projectController');
+const fetchuser = require('../middleware/fetchuser');
+
+// Route to get all projects
+router.get('/', fetchuser, getProjects);
+
+// Route to create a new project
+router.post('/', fetchuser, createProject);
+
+// Route to add a member to a project
+router.post('/:projectId/add-member', fetchuser, addMember);
+
+// Route to assign a task to a project
+router.post('/:projectId/assign-task', fetchuser, assignTask);
+
+// Update an existing project
+router.put('/:id', fetchuser, updateExistingProject);
+
+// Delete a project
+router.delete('/:id', fetchuser, deleteProject);
+
+
+// Task routes
+router.post('/:projectId/tasks', fetchuser, addTask);
+router.put('/:projectId/tasks/:taskId', fetchuser, updateTask);
+router.delete('/:projectId/tasks/:taskId', fetchuser, deleteTask);
+
+
+
+module.exports = router;
+
+
+
+const Project = require('../models/Project');
+const User = require('../models/User');
+const Note = require('../models/Note');
+// const { get } = require('../routes/project');
+
+// Helper function to validate email format
+const validateEmail = (email) => {
+  // Allow empty or placeholder emails to pass
+  if (!email || email === 'placeholder@') return true;
+  
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(String(email).toLowerCase());
+};
+
+
+// Get all projects for a user
+const getProjects = async (req, res) => {
+  try {
+    const projects = await Project.find({ 'createdBy': req.user.id })
+      .populate('members.email', 'name') // Assuming email is used as the identifier for members
+      .populate('tasks'); // Assuming 'Note' is the correct model for tasks
+    res.json(projects);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+
+// Create a new project
+const createProject = async (req, res) => {
+  const { name, description, deadline, members } = req.body;
+  try {
+    const formattedMembers = Array.isArray(members) ? members : [{ email: members, role: 'Team Member' }];
+
+    const validatedMembers = formattedMembers.map((member) => {
+      if (!validateEmail(member.email)) {
+        throw new Error(`Invalid email format: ${member.email}`);
+      }
+      return { email: member.email, role: member.role };
+    });
+
+    const newProject = new Project({
+      name,
+      description,
+      deadline,
+      members: validatedMembers,
+      createdBy: req.user.id, // Ensure createdBy is set to the current user ID
+    });
+
+    const project = await newProject.save();
+
+    const user = await User.findById(req.user.id);
+    user.projects.push(project._id);
+    await user.save();
+
+    res.json(project);
+  } catch (error) {
+    console.error('Error creating project:', error.message);
+    res.status(500).send(`Server Error: ${error.message}`);
+  }
+};
+
+// Add a member to a project
+const addMember = async (req, res) => {
+  const { projectId } = req.params;
+  const { email, role } = req.body;
+  try {
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+      return res.status(404).json({ msg: 'Project not found' });
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      return res.status(400).json({ msg: 'Invalid email format' });
+    }
+
+    project.members.push({ email, role });
+    await project.save();
+
+    res.json(project);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Assign a task to a project
+const assignTask = async (req, res) => {
+  const { projectId } = req.params;
+  const { taskId } = req.body;
+  try {
+    const project = await Project.findById(projectId);
+    const task = await Note.findById(taskId);
+
+    if (!project || !task) {
+      return res.status(404).json({ msg: 'Project or Task not found' });
+    }
+
+    project.tasks.push(taskId);
+    await project.save();
+
+    res.json(project);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Update an existing project
+const updateExistingProject = async (req, res) => {
+  const { name, description, deadline, members } = req.body;
+  try {
+    let project = await Project.findById(req.params.id);
+    console.log('Project before update:', project); // Logging the project before update
+
+    if (!project) return res.status(404).json({ msg: 'Project not found' });
+
+    // Validate email format for each member
+    const updatedMembers = members.map((member) => {
+      if (!validateEmail(member.email)) {
+        throw new Error(`Invalid email format: ${member.email}`);
+      }
+      return { email: member.email, role: member.role };
+    });
+
+    // Update the project fields
+    const updatedProject = {
+      name: name || project.name,
+      description: description || project.description,
+      deadline: deadline || project.deadline,
+      members: updatedMembers || project.members,
+    };
+
+    // Update the project in the database
+    project = await Project.findByIdAndUpdate(req.params.id, { $set: updatedProject }, { new: true });
+
+    // Log the updated project
+    console.log('Project after update:', project);
+
+    res.json(project);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Delete a project
+const deleteProject = async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+
+    if (!project) return res.status(404).json({ msg: 'Project not found' });
+
+    await Project.findByIdAndDelete(req.params.id);
+
+    // Remove the project from the user's projects array
+    const user = await User.findById(project.createdBy);
+    user.projects = user.projects.filter(projectId => projectId.toString() !== req.params.id);
+    await user.save();
+
+    res.json({ msg: 'Project removed' });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Add Task
+const addTask = async (req, res) => {
+  const { projectId } = req.params;
+  const { title, description, dueDate, status } = req.body;
+  try {
+    const project = await Project.findById(projectId);
+    if (!project) return res.status(404).json({ msg: 'Project not found' });
+
+    const newTask = new Note({
+      user: req.user.id,
+      title,
+      description,
+      dueDate,
+      status
+    });
+
+    await newTask.save();
+    project.tasks.push(newTask._id);
+    await project.save();
+
+    res.json(project);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Update Task
+const updateTask = async (req, res) => {
+  const { projectId, taskId } = req.params;
+  const { title, description, dueDate, status } = req.body;
+  try {
+    const project = await Project.findById(projectId);
+    if (!project) return res.status(404).json({ msg: 'Project not found' });
+
+    const task = await Note.findById(taskId);
+    if (!task) return res.status(404).json({ msg: 'Task not found' });
+
+    task.title = title || task.title;
+    task.description = description || task.description;
+    task.dueDate = dueDate || task.dueDate;
+    task.status = status || task.status;
+
+    await task.save();
+
+    res.json(task);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Delete Task
+const deleteTask = async (req, res) => {
+  const { projectId, taskId } = req.params;
+  try {
+    const project = await Project.findById(projectId);
+    if (!project) return res.status(404).json({ msg: 'Project not found' });
+
+    project.tasks = project.tasks.filter(task => task.toString() !== taskId);
+    await project.save();
+
+    await Note.findByIdAndDelete(taskId);
+
+    res.json({ msg: 'Task deleted' });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+
+module.exports = {
+  getProjects,
+  createProject,
+  addMember,
+  assignTask,
+  updateExistingProject,
+  deleteProject,  addTask, updateTask, deleteTask 
+};
+
+
+
+
+
+
+
+
+
+and the following for Tasks (notes)
+front-end :
+
+// components/Tasks.jsx
+import React, { useContext, useEffect, useRef, useState } from 'react';
+import noteContext from "../../context/notes/NotesContext";
+import TaskItem from '../../components/TaskItem';
+import AddTask from '../../components/AddTask';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+
+import TaskModal from '../../components/TaskModal';
+
+const Tasks = () => {
+    const context = useContext(noteContext);
+    const { notes, getNotes, editNote } = context;
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [currentNote, setCurrentNote] = useState({ id: "", title: "", description: "", tag: "", dueDate: new Date() });
+
+    useEffect(() => {
+        getNotes();
+    }, []);
+
+    const updateNote = (note) => {
+        setCurrentNote({ id: note._id, title: note.title, description: note.description, tag: note.tag, dueDate: new Date(note.dueDate) });
+        setShowEditModal(true);
+    };
+
+    const handleEditSubmit = (e) => {
+        e.preventDefault();
+        // console.log("Submitting edit for note:", currentNote); // Debugging statement
+        editNote(currentNote.id, currentNote.title, currentNote.description, currentNote.tag, currentNote.dueDate);
+        setShowEditModal(false);
+    };
+    
+
+    const handleEditChange = (e) => {
+        setCurrentNote({ ...currentNote, [e.target.name]: e.target.value });
+    };
+
+    const handleEditDateChange = (date) => {
+        setCurrentNote({ ...currentNote, dueDate: date });
+    };
+
+    return (
+        <>
+            <AddTask />
+            {showEditModal && (
+                <div className="fixed inset-0 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
+                        <h2 className="text-2xl font-semibold mb-4">Edit Task</h2>
+                        <form onSubmit={handleEditSubmit}>
+                            <div className="mb-4">
+                                <label className="block text-gray-700">Title</label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    value={currentNote.title}
+                                    onChange={handleEditChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-red-500"
+                                    required
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-gray-700">Description</label>
+                                <textarea
+                                    name="description"
+                                    value={currentNote.description}
+                                    onChange={handleEditChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-red-500"
+                                    required
+                                ></textarea>
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-gray-700">Tag</label>
+                                <select
+                                    name="tag"
+                                    value={currentNote.tag}
+                                    onChange={handleEditChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-red-500"
+                                    required
+                                >
+                                    <option value="">Select Tag</option>
+                                    <option value="Personal">Personal</option>
+                                    <option value="Other Project">Other Project</option>
+                                </select>
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-gray-700">Due Date</label>
+                                <DatePicker
+                                    selected={currentNote.dueDate}
+                                    onChange={handleEditDateChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-red-500"
+                                />
+                            </div>
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditModal(false)}
+                                    className="bg-gray-500 text-white px-4 py-2 rounded-lg mr-2"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="bg-red-500 text-white px-4 py-2 rounded-lg"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            <div className="flex flex-col mt-5">
+                {notes.map((note) => (
+                    <TaskItem key={note._id} updateNote={updateNote} note={note} />
+                ))}
+            </div>
+        </>
+    );
+};
+
+export default Tasks;
+
+// components/TaskModal.jsx
+import React, { useState, useContext } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import noteContext from "../context/notes/NotesContext";
+
+const TaskModal = ({ showModal, setShowModal }) => {
+    const context = useContext(noteContext);
+    const { addNote } = context;
+    const [task, setTask] = useState({ title: "", description: "", tag: "", dueDate: new Date() });
+
+    const handleChange = (e) => {
+        setTask({ ...task, [e.target.name]: e.target.value });
+    };
+
+    const handleDateChange = (date) => {
+        setTask({ ...task, dueDate: date });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        addNote(task.title, task.description, task.tag, task.dueDate);
+        setTask({ title: "", description: "", tag: "", dueDate: new Date() });
+        setShowModal(false);
+    };
+
+    return (
+        <>
+            {showModal ? (
+                <div className="fixed inset-0 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
+                        <h2 className="text-2xl font-semibold mb-4">Create Task</h2>
+                        <form onSubmit={handleSubmit}>
+                            <div className="mb-4">
+                                <label className="block text-gray-700">Title</label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    value={task.title}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-red-500"
+                                    required
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-gray-700">Description</label>
+                                <textarea
+                                    name="description"
+                                    value={task.description}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-red-500"
+                                    required
+                                ></textarea>
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-gray-700">Tag</label>
+                                <select
+                                    name="tag"
+                                    value={task.tag}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-red-500"
+                                    required
+                                >
+                                    <option value="">Select Tag</option>
+                                    <option value="Personal">Personal</option>
+                                    <option value="Other Project">Other Project</option>
+                                </select>
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-gray-700">Due Date</label>
+                                <DatePicker
+                                    selected={task.dueDate}
+                                    onChange={handleDateChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-red-500"
+                                />
+                            </div>
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="bg-gray-500 text-white px-4 py-2 rounded-lg mr-2"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="bg-red-500 text-white px-4 py-2 rounded-lg"
+                                >
+                                    Add Task
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            ) : null}
+        </>
+    );
+};
+
+export default TaskModal;
+
+// components/TaskItem.jsx
+import React, { useState, useContext } from 'react';
+import noteContext from "../context/notes/NotesContext";
+
+const TaskItem = (props) => {
+    const context = useContext(noteContext);
+    const { deleteNote, editNote } = context;
+    const { note, updateNote } = props;
+    const [btnIsChecked, setbtnIsChecked] = useState(false);
+    const handleStatusChange = () => {
+        const newStatus = note.status === "in-progress" ? "done" : "in-progress";
+        editNote(note._id, note.title, note.description, note.tag, note.dueDate, newStatus);
+        setbtnIsChecked(!btnIsChecked);
+    };
+
+
+
+    return (
+        <div className={`bg-white p-4 rounded-lg shadow-md m-2 ${note.status === 'done' ? 'bg-gray-200 line-through' : ''} `}>
+            <div className="flex justify-between items-center">
+
+                
+                <input
+                    type="checkbox"
+                    name="taskStatus"
+                    id="taskStatus"
+                    className={` border-red-500 rounded-full w-3 h-3 cursor-pointer mr-3.5 ${btnIsChecked ? 'bg-red-500' : 'bg-white'}`}
+                    onClick={handleStatusChange}
+                />
+
+
+
+                <h3 className="text-xl font-semibold">{note.title}</h3>
+                <div>
+                    {/* <button onClick={handleStatusChange}>
+                        {note.status === "in-progress" ? "Mark as Done" : "Mark as In-Progress"}
+                </button> */}
+
+
+                    <button
+                        className="text-red-500 mx-2 hover:text-underline-red-500 hover:underline hover:decoration-red-400"
+                        onClick={() => deleteNote(note._id)}
+                    >
+                        Delete
+                    </button>
+                    <button
+                        className="text-red-500 mx-2 hover:underline hover:decoration-red-400"
+                        onClick={() => updateNote(note)}
+                    >
+                        Edit
+                    </button>
+
+                </div>
+            </div>
+            <p className="text-gray-700 mt-2">{note.description}</p>
+            <p className="text-gray-500 mt-1">{note.tag}</p>
+            <p className="text-gray-500 mt-1">Due Date: {new Date(note.dueDate).toLocaleDateString()}</p>
+        </div>
+    );
+};
+
+export default TaskItem;
+
+
+import { createContext } from "react";
+const NotesContext = createContext()
+export default NotesContext;
+
+
+// context/notes/NoteState.js
+
+import NoteContext from "./NotesContext";
+import { useState } from "react";
+import { getAuthToken } from "../../utility/JWTtokenExport"; // Import the utility function
+
+const NoteState = (props) => {
+  const host = "http://localhost:5000";
+  const notesInitial = [];
+  const [notes, setNotes] = useState(notesInitial);
+
+  // Get all Notes
+  const getNotes = async () => {
+    const token = getAuthToken();
+    const response = await fetch(`${host}/api/notes/fetchallnotes`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'auth-token': token
+      }
+    });
+    const json = await response.json();
+    setNotes(json);
+  };
+
+  // Add a Note
+  const addNote = async (title, description, tag, dueDate , status = "in-progress") => {
+    const token = getAuthToken();
+    const response = await fetch(`${host}/api/notes/addnote`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'auth-token': token
+      },
+      body: JSON.stringify({ title, description, tag, dueDate , status })
+    });
+
+    const note = await response.json();
+    setNotes(notes.concat(note));
+  };
+
+  // Delete a Note
+  const deleteNote = async (id) => {
+    const token = getAuthToken();
+    const response = await fetch(`${host}/api/notes/deletenote/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'auth-token': token
+      }
+    });
+    await response.json();
+    const newNotes = notes.filter(note => note._id !== id);
+    setNotes(newNotes);
+  };
+
+  // Edit a Note
+  const editNote = async (id, title, description, tag, dueDate,status) => {
+    const token = getAuthToken();
+    try {
+        const response = await fetch(`${host}/api/notes/updatenote/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'auth-token': token
+            },
+            body: JSON.stringify({ title, description, tag, dueDate , status })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            let newNotes = notes.map(note => note._id === id ? data : note);
+            setNotes(newNotes);
+        } else {
+            console.error('Failed to update note:', data);
+        }
+    } catch (error) {
+        console.error('Error updating note:', error);
+    }
+};
+  return (
+    <NoteContext.Provider value={{ notes, addNote, deleteNote, editNote, getNotes }}>
+      {props.children}
+    </NoteContext.Provider>
+  );
+};
+
+export default NoteState;
+
+
+AND BACKEND :
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+
+const notesSchema = new Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    title: {
+        type: String,
+        required: true
+    },
+    description: {
+        type: String,
+        required: true
+    },
+    tag: {
+        type: String,
+        default: "general"
+    },
+    date: {
+        type: Date,
+        default: Date.now
+    },
+    dueDate: {
+        type: Date,
+        required: true
+    },
+    status: {
+        type: String,
+        default: "in-progress",
+        enum: ["in-progress", "done"]
+    }
+});
+
+module.exports = mongoose.model('notes', notesSchema);
+
+
+const express = require('express');
+const router = express.Router();
+const fetchuser = require('../middleware/fetchuser');
+const Note = require('../models/Note');
+const { body, validationResult } = require('express-validator');
+
+// ROUTE 1: Get All the Notes using: GET "/api/notes/getuser". Login required
+router.get('/fetchallnotes', fetchuser, async (req, res) => {
+    try {
+        const notes = await Note.find({ user: req.user.id });
+        res.json(notes)
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).send("Internal Server Error");
+    }
+})
+
+// ROUTE 2: Add a new Note using: POST "/api/notes/addnote". Login required
+router.post('/addnote', fetchuser, [
+    body('title', 'Enter a valid title').isLength({ min: 3 }),
+    body('description', 'Description must be at least 5 characters').isLength({ min: 5 })
+], async (req, res) => {
+    try {
+        const { title, description, tag, dueDate , status} = req.body;
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const note = new Note({
+            title, description, tag, dueDate, status, user: req.user.id
+        });
+
+        const savedNote = await note.save();
+        res.json(savedNote);
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+
+
+// ROUTE 3: Update an existing Note using: PUT "/api/notes/updatenote". Login required
+//id so only that purticular user can update that note
+router.put('/updatenote/:id', fetchuser, async (req, res) => {
+    const { title, description, tag, dueDate , status } = req.body;
+
+    try {
+        // Log request body and parameters for debugging
+        // console.log('Request Params:', req.params);
+        // console.log('Request Body:', req.body);
+
+        // Validate dueDate if it is provided
+        if (dueDate && isNaN(Date.parse(dueDate))) {
+            return res.status(400).send("Invalid dueDate format");
+        }
+
+        // Create a newNote object
+        const newNote = {};
+        if (title) { newNote.title = title; }
+        if (description) { newNote.description = description; }
+        if (tag) { newNote.tag = tag; }
+        if (dueDate) { newNote.dueDate = dueDate; }
+        if (status) { newNote.status = status; }
+        
+        // Find the note to be updated and update it
+        let note = await Note.findById(req.params.id);
+        if (!note) {
+            return res.status(404).send("Not Found");
+        }
+
+        // Allow update only if user owns this Note
+        if (note.user.toString() !== req.user.id) {
+            return res.status(401).send("Not Allowed");
+        }
+
+        // Update the note
+        note = await Note.findByIdAndUpdate(req.params.id, { $set: newNote }, { new: true });
+        res.json(note);
+    } catch (error) {
+        console.error('Error:', error.message);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+module.exports = router;
+// ROUTE 4: Delete an existing Note using: DELETE "/api/notes/deletenote". Login required
+router.delete('/deletenote/:id', fetchuser, async (req, res) => {
+    try {
+        // Find the note to be delete and delete it
+        let note = await Note.findById(req.params.id);
+        if (!note) { return res.status(404).send("Not Found") }
+
+        // Allow deletion only if user owns this Note
+        if (note.user.toString() !== req.user.id) {
+            return res.status(401).send("Not Allowed");
+        }
+
+        note = await Note.findByIdAndDelete(req.params.id)
+        res.json({ "Success": "Note has been deleted", note: note });
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).send("Internal Server Error");
+    }
+})
+module.exports = router
+

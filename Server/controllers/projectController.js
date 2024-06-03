@@ -1,7 +1,6 @@
 const Project = require('../models/Project');
 const User = require('../models/User');
 const Note = require('../models/Note');
-// const { get } = require('../routes/project');
 
 // Helper function to validate email format
 const validateEmail = (email) => {
@@ -11,7 +10,6 @@ const validateEmail = (email) => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(String(email).toLowerCase());
 };
-
 
 // Get all projects for a user
 const getProjects = async (req, res) => {
@@ -25,7 +23,6 @@ const getProjects = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
-
 
 // Create a new project
 const createProject = async (req, res) => {
@@ -168,6 +165,77 @@ const deleteProject = async (req, res) => {
   }
 };
 
+// Add Task
+const addTask = async (req, res) => {
+  const { projectId } = req.params;
+  const { title, description, dueDate, status } = req.body;
+  try {
+    const project = await Project.findById(projectId);
+    if (!project) return res.status(404).json({ msg: 'Project not found' });
+
+    const newTask = new Note({
+      user: req.user.id,
+      title,
+      description,
+      dueDate,
+      status
+    });
+
+    await newTask.save();
+    project.tasks.push(newTask._id);
+    await project.save();
+
+    res.json(project);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Update Task
+const updateTask = async (req, res) => {
+  const { projectId, taskId } = req.params;
+  const { title, description, dueDate, status } = req.body;
+  try {
+    const project = await Project.findById(projectId);
+    if (!project) return res.status(404).json({ msg: 'Project not found' });
+
+    const task = await Note.findById(taskId);
+    if (!task) return res.status(404).json({ msg: 'Task not found' });
+
+    task.title = title || task.title;
+    task.description = description || task.description;
+    task.dueDate = dueDate || task.dueDate;
+    task.status = status || task.status;
+
+    await task.save();
+
+    res.json(task);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Delete Task
+const deleteTask = async (req, res) => {
+  const { projectId, taskId } = req.params;
+  try {
+    const project = await Project.findById(projectId);
+    if (!project) return res.status(404).json({ msg: 'Project not found' });
+
+    project.tasks = project.tasks.filter(task => task.toString() !== taskId);
+    await project.save();
+
+    await Note.findByIdAndDelete(taskId);
+
+    res.json({ msg: 'Task deleted' });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
 module.exports = {
   getProjects,
   createProject,
@@ -175,4 +243,7 @@ module.exports = {
   assignTask,
   updateExistingProject,
   deleteProject,
+  addTask,
+  updateTask,
+  deleteTask,
 };

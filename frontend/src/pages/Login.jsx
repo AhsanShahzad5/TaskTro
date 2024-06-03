@@ -110,12 +110,12 @@ const Login = () => {
                 />
               </div>
 
-              <button className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-gray-200 p-3 hover:bg-opacity-90 hover:border-red-500">
+              {/* <button className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-gray-200 p-3 hover:bg-opacity-90 hover:border-red-500">
                 Login with Google
                 <span>
                   <FirstSvg />
                 </span>
-              </button>
+              </button> */}
 
               <div className="mt-4 text-center">
                 <p>
