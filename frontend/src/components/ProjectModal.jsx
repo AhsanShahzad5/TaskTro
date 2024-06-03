@@ -38,7 +38,10 @@ const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
 
   const onAddMember = () => {
     const member = { email, role };
-    setProjectData({ ...projectData, members: [...projectData.members, member] });
+    setProjectData((prevData) => ({
+      ...prevData,
+      members: [...prevData.members, member],
+    }));
     setEmail('');
     setRole('Team Member');
   };
@@ -46,7 +49,7 @@ const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
   const onTaskSave = async (task) => {
     try {
       if (!projectData._id) {
-        throw new Error("Project ID is undefined");
+        throw new Error('Project ID is undefined');
       }
 
       const method = task._id ? 'PUT' : 'POST';
@@ -67,18 +70,17 @@ const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
         throw new Error('Failed to save task');
       }
 
-      const savedTask = await response.json();
-      console.log('Saved Task:', savedTask);
+      const updatedProject = await response.json();
+      // console.log('Updated Project:', updatedProject);
 
-      setProjectData(prevData => ({
+      setProjectData((prevData) => ({
         ...prevData,
-        tasks: task._id
-          ? prevData.tasks.map(t => (t._id === savedTask._id ? savedTask : t))
-          : [...prevData.tasks, savedTask],
+        tasks: updatedProject.tasks,
       }));
 
       setTaskModalOpen(false);
       setSelectedTask(null); // Clear selectedTask after saving
+     
     } catch (error) {
       console.error('Failed to save task:', error);
     }
@@ -87,24 +89,30 @@ const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
   const onTaskDelete = async (taskId) => {
     try {
       if (!projectData._id) {
-        throw new Error("Project ID is undefined");
+        throw new Error('Project ID is undefined');
       }
 
-      const response = await fetch(`http://localhost:5000/api/projects/${projectData._id}/tasks/${taskId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'auth-token': token,
-        },
-      });
+      const response = await fetch(
+        `http://localhost:5000/api/projects/${projectData._id}/tasks/${taskId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'auth-token': token,
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to delete task');
       }
 
+      const updatedProject = await response.json();
+      console.log('Updated Project after task deletion:', updatedProject);
+
       setProjectData((prevData) => ({
         ...prevData,
-        tasks: prevData.tasks.filter((t) => t._id !== taskId),
+        tasks: updatedProject.tasks,
       }));
     } catch (error) {
       console.error('Failed to delete task:', error);
@@ -115,7 +123,9 @@ const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
     e.preventDefault();
     try {
       const method = project ? 'PUT' : 'POST';
-      const url = project ? `http://localhost:5000/api/projects/${project._id}` : 'http://localhost:5000/api/projects';
+      const url = project
+        ? `http://localhost:5000/api/projects/${project._id}`
+        : 'http://localhost:5000/api/projects';
 
       const response = await fetch(url, {
         method: method,
@@ -196,8 +206,8 @@ const ProjectModal = ({ isOpen, onClose, onSave, project }) => {
           </div>
           <div>
             <h4 className="text-red-500">Tasks:</h4>
-            {projectData.tasks.map((task) => (
-              <div key={task._id} className="mb-2">
+            {projectData.tasks.map((task, index) => (
+              <div key={task._id || index} className="mb-2">
                 <div className="flex justify-between items-center">
                   <div>{task.title}</div>
                   <div>
