@@ -41,7 +41,7 @@ const ProjectsCreation = () => {
         <button onClick={() => openModal()} className="cursor-pointer mt-2 ml-10 bg-red-500 text-white p-2 rounded ">Create New Project</button>
         <div className="mt-6 flex">
           <p className="text-red-500 font-bold cursor-pointer  " style={{
-                'font-size': '2rem'
+                'fontSize': '2rem'
           }}>My Projects</p>
 
         </div>

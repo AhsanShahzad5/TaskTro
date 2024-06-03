@@ -9,7 +9,7 @@ const Profile = () => {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm();
   const navigate = useNavigate();
 
-  const token = getAuthToken()
+  const token = getAuthToken();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -29,12 +29,12 @@ const Profile = () => {
         setValue('designation', data.designation);
         setValue('company', data.company);
       } else {
-        navigate('/create-profile');
+        navigate('/home');
       }
     };
 
     fetchProfile();
-  }, [navigate, setValue]);
+  }, [navigate, setValue, token]);
 
   const onSubmit = async (data) => {
     const response = await fetch('http://localhost:5000/api/profile', {
@@ -89,12 +89,21 @@ const Profile = () => {
                     <span className="font-bold">Company:</span> {profile.company}
                   </p>
                 </div>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="mt-4 w-full cursor-pointer rounded-lg border border-red-500 bg-red-500 p-3 text-white transition hover:bg-red-400"
-                >
-                  Update
-                </button>
+                <div className="flex gap-3">
+
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="mt-4 w-full cursor-pointer rounded-lg border border-red-500 bg-red-500 p-3 text-white transition hover:bg-red-400"
+                  >
+                    Update
+                  </button>
+                  <button
+                    onClick={() => navigate('/home')}
+                    className="mt-4 w-full cursor-pointer rounded-lg border border-red-500 bg-red-500 p-3 text-white transition hover:bg-red-400"
+                  >
+                    Back
+                  </button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit(onSubmit)}>

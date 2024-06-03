@@ -1,7 +1,7 @@
 const Project = require('../models/Project');
 const User = require('../models/User');
 const Note = require('../models/Note');
-const { get } = require('../routes/project');
+// const { get } = require('../routes/project');
 
 // Helper function to validate email format
 const validateEmail = (email) => {
